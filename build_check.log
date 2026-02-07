@@ -1,0 +1,59 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.6/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+> Task :clean
+> Task :preBuild UP-TO-DATE
+> Task :preDebugBuild UP-TO-DATE
+> Task :mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :checkKotlinGradlePluginConfigurationErrors
+> Task :generateDebugResValues
+> Task :checkDebugAarMetadata
+> Task :mapDebugSourceSetPaths
+> Task :generateDebugResources
+> Task :packageDebugResources
+> Task :createDebugCompatibleScreenManifests
+> Task :extractDeepLinksDebug
+> Task :parseDebugLocalResources
+> Task :processDebugMainManifest
+> Task :processDebugManifest
+> Task :javaPreCompileDebug
+> Task :mergeDebugShaders
+> Task :compileDebugShaders NO-SOURCE
+> Task :generateDebugAssets UP-TO-DATE
+> Task :mergeDebugAssets
+> Task :compressDebugAssets
+> Task :desugarDebugFileDependencies
+> Task :mergeDebugJniLibFolders
+> Task :mergeDebugResources
+> Task :mergeDebugNativeLibs NO-SOURCE
+> Task :stripDebugDebugSymbols NO-SOURCE
+> Task :checkDebugDuplicateClasses
+> Task :validateSigningDebug
+> Task :writeDebugAppMetadata
+> Task :mergeLibDexDebug
+> Task :writeDebugSigningConfigVersions
+> Task :processDebugManifestForPackage
+> Task :processDebugResources
+> Task :mergeExtDexDebug
+
+> Task :compileDebugKotlin FAILED
+e: file:///Users/danlazarescu/green_delivery/green-go-client/src/main/kotlin/green/go/LoginActivity.kt:19:24 Unresolved reference: R
+e: file:///Users/danlazarescu/green_delivery/green-go-client/src/main/kotlin/green/go/LoginActivity.kt:21:46 Unresolved reference: R
+e: file:///Users/danlazarescu/green_delivery/green-go-client/src/main/kotlin/green/go/LoginActivity.kt:22:49 Unresolved reference: R
+e: file:///Users/danlazarescu/green_delivery/green-go-client/src/main/kotlin/green/go/LoginActivity.kt:23:45 Unresolved reference: R
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 6s
+27 actionable tasks: 27 executed
