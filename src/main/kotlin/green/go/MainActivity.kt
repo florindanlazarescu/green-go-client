@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.navigation_my_deliveries -> selectedFragment = MyDeliveriesFragment()
                 R.id.navigation_pending -> selectedFragment = PendingFragment()
                 R.id.navigation_in_progress -> selectedFragment = InProgressFragment()
+                R.id.navigation_picked_up -> selectedFragment = PickedUpFragment()
             }
             if (selectedFragment != null) {
                 replaceFragment(selectedFragment)

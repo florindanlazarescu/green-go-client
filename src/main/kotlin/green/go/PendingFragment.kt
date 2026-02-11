@@ -2,6 +2,8 @@ package green.go
 
 import android.app.AlertDialog
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,11 +19,23 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 class PendingFragment : Fragment() {
 
     private lateinit var adapter: DeliveryAdapter
     private lateinit var tvEmpty: TextView
+
+    private val handler = Handler(Looper.getMainLooper())
+    private val refreshRunnable = object : Runnable {
+        override fun run() {
+            fetchPendingDeliveries()
+            handler.postDelayed(this, 10000)
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -34,15 +48,23 @@ class PendingFragment : Fragment() {
 
         tvTitle.text = "Pending Deliveries"
 
-        adapter = DeliveryAdapter(emptyList()) { delivery ->
+        adapter = DeliveryAdapter(emptyList(), DeliveryAdapter.MODE_PENDING) { delivery ->
             showPickOrderDialog(delivery)
         }
         rvDeliveries.layoutManager = LinearLayoutManager(context)
         rvDeliveries.adapter = adapter
 
-        fetchPendingDeliveries()
-
         return view
+    }
+
+    override fun onResume() {
+        super.onResume()
+        handler.post(refreshRunnable)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        handler.removeCallbacks(refreshRunnable)
     }
 
     private fun fetchPendingDeliveries() {
@@ -58,7 +80,11 @@ class PendingFragment : Fragment() {
                             adapter.updateData(emptyList())
                         } else {
                             tvEmpty.visibility = View.GONE
-                            adapter.updateData(deliveries)
+                            // Sort by pickup time
+                            val sortedDeliveries = deliveries.sortedBy {
+                                parseDate(it.pickUpTime).time
+                            }
+                            adapter.updateData(sortedDeliveries)
                         }
                     } else {
                         tvEmpty.visibility = View.VISIBLE
@@ -74,9 +100,27 @@ class PendingFragment : Fragment() {
         }
     }
 
+    private fun parseDate(dateString: String): Date {
+        val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
+        format.timeZone = TimeZone.getDefault()
+        return try {
+            format.parse(dateString) ?: Date()
+        } catch (e: Exception) {
+            Date()
+        }
+    }
+
     private fun showPickOrderDialog(delivery: Delivery) {
+        val message = "Address: ${delivery.pickupAddress}\n" +
+                "Deliver to: ${delivery.deliveryAddress}\n" +
+                "Items: ${delivery.items}\n" +
+                "Cost: $${delivery.cost}\n" +
+                "Pickup Time: ${delivery.pickUpTime.replace("T", " ").replace("Z", "")}\n\n" +
+                "Want to pick this order?"
+
         AlertDialog.Builder(requireContext())
-            .setMessage("Want to pick this order?")
+            .setTitle("Order #${delivery.orderId}")
+            .setMessage(message)
             .setPositiveButton("Yes") { _, _ ->
                 confirmPickOrder(delivery)
             }

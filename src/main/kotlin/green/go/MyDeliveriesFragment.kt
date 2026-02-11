@@ -30,10 +30,10 @@ class MyDeliveriesFragment : Fragment() {
         tvEmpty = view.findViewById(R.id.tvEmpty)
         val rvDeliveries = view.findViewById<RecyclerView>(R.id.rvDeliveries)
 
-        tvTitle.text = "My Deliveries History"
+        tvTitle.text = "Delivered Orders"
 
         // No click action defined for history items yet
-        adapter = DeliveryAdapter(emptyList()) { }
+        adapter = DeliveryAdapter(emptyList(), DeliveryAdapter.MODE_STANDARD) { }
         rvDeliveries.layoutManager = LinearLayoutManager(context)
         rvDeliveries.adapter = adapter
 
@@ -58,13 +58,17 @@ class MyDeliveriesFragment : Fragment() {
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful) {
                         val deliveries = response.body()?.deliveries ?: emptyList()
-                        if (deliveries.isEmpty()) {
+
+                        // Filter for only DELIVERED
+                        val filtered = deliveries.filter { it.status == "DELIVERED" }
+
+                        if (filtered.isEmpty()) {
                             tvEmpty.visibility = View.VISIBLE
-                            tvEmpty.text = "No deliveries found."
+                            tvEmpty.text = "No delivered orders found."
                             adapter.updateData(emptyList())
                         } else {
                             tvEmpty.visibility = View.GONE
-                            adapter.updateData(deliveries)
+                            adapter.updateData(filtered)
                         }
                     } else {
                         tvEmpty.visibility = View.VISIBLE

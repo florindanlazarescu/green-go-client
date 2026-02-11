@@ -3,6 +3,15 @@ plugins {
     kotlin("android") version "1.9.22"
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
+val keystorePropertiesFile = rootProject.file("local.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 group = "green.go"
 version = "1.0-SNAPSHOT"
 
@@ -10,21 +19,47 @@ version = "1.0-SNAPSHOT"
 
 android {
     namespace = "green.go"
-    compileSdk = 34
+    compileSdk = 35
+
+    buildFeatures {
+        buildConfig = true
+    }
 
     defaultConfig {
         applicationId = "green.go"
         minSdk = 24
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        targetSdk = 35
+        versionCode = 3
+        versionName = "2.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:4042/\"")
+    }
+
+    signingConfigs {
+        create("release") {
+            val storeFileVal = keystoreProperties.getProperty("storeFile")
+            if (storeFileVal != null) {
+                storeFile = file(storeFileVal)
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
+            buildConfigField("String", "BASE_URL", "\"https://www.green-go.ro/\"")
+        }
+        create("staging") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".staging"
+            buildConfigField("String", "BASE_URL", "\"https://delivery-staging.green-go.ro/\"")
         }
     }
     compileOptions {

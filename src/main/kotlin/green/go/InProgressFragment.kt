@@ -35,9 +35,9 @@ class InProgressFragment : Fragment() {
         tvEmpty = view.findViewById(R.id.tvEmpty)
         val rvDeliveries = view.findViewById<RecyclerView>(R.id.rvDeliveries)
 
-        tvTitle.text = "In Progress / Picked Up"
+        tvTitle.text = "In Progress"
 
-        adapter = DeliveryAdapter(emptyList()) { delivery ->
+        adapter = DeliveryAdapter(emptyList(), DeliveryAdapter.MODE_ACTIVE) { delivery ->
             handleDeliveryClick(delivery)
         }
         rvDeliveries.layoutManager = LinearLayoutManager(context)
@@ -49,21 +49,12 @@ class InProgressFragment : Fragment() {
     }
 
     private fun handleDeliveryClick(delivery: Delivery) {
-        when (delivery.status) {
-            "IN_PROGRESS" -> {
-                showConfirmationDialog(
-                    message = "Confirm you have picked up this order from the merchant.",
-                    delivery = delivery,
-                    nextStatus = "PICKED_UP"
-                )
-            }
-            "PICKED_UP" -> {
-                showConfirmationDialog(
-                    message = "Confirm you have successfully delivered this order.",
-                    delivery = delivery,
-                    nextStatus = "DELIVERED"
-                )
-            }
+        if (delivery.status == "IN_PROGRESS") {
+            showConfirmationDialog(
+                message = "Confirm you have picked up this order from the merchant.",
+                delivery = delivery,
+                nextStatus = "PICKED_UP"
+            )
         }
     }
 
@@ -121,7 +112,7 @@ class InProgressFragment : Fragment() {
 
         val request = DeliverySearchRequest(
             queryFilter = QueryFilter(ByCourier(id)),
-            statuses = listOf("IN_PROGRESS", "PICKED_UP")
+            statuses = listOf("IN_PROGRESS")
         )
 
         CoroutineScope(Dispatchers.IO).launch {
@@ -132,7 +123,7 @@ class InProgressFragment : Fragment() {
                         val deliveries = response.body()?.deliveries ?: emptyList()
                         if (deliveries.isEmpty()) {
                             tvEmpty.visibility = View.VISIBLE
-                            tvEmpty.text = "No active deliveries."
+                            tvEmpty.text = "No in-progress deliveries."
                             adapter.updateData(emptyList())
                         } else {
                             tvEmpty.visibility = View.GONE

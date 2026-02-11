@@ -1,6 +1,7 @@
 package green.go.network
 
 import android.content.Context
+import green.go.BuildConfig
 import green.go.utils.SessionManager
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -8,8 +9,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
-    // 10.0.2.2 is the special alias to your host loopback interface (i.e., 127.0.0.1 on your development machine)
-    private const val BASE_URL = "http://10.0.2.2:4042/"
+    private const val BASE_URL = BuildConfig.BASE_URL
 
     private var sessionManager: SessionManager? = null
 
