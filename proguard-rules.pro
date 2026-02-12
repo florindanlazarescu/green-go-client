@@ -18,9 +18,13 @@
 -keepattributes AnnotationDefault
 
 # Gson
+-keepattributes Signature
 -keepattributes *Annotation*
 -keep class sun.misc.Unsafe { *; }
 -keep class com.google.gson.stream.** { *; }
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
+-keep public class * implements java.lang.reflect.Type
 
 # Keep data models
 -keep class green.go.model.** { *; }

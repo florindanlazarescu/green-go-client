@@ -59,7 +59,7 @@ class LoginActivity : AppCompatActivity() {
                                 Toast.makeText(this@LoginActivity, "Login Successful but no token received", Toast.LENGTH_LONG).show()
                             }
                         } else {
-                            Toast.makeText(this@LoginActivity, "Login Failed: ${response.code()}", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this@LoginActivity, "Login Failed", Toast.LENGTH_LONG).show()
                         }
                     }
                 } catch (e: Exception) {

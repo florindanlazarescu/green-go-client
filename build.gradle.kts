@@ -29,8 +29,8 @@ android {
         applicationId = "green.go"
         minSdk = 24
         targetSdk = 35
-        versionCode = 3
-        versionName = "2.1"
+        versionCode = 4
+        versionName = "2.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:4042/\"")

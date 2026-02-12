@@ -31,7 +31,7 @@ class MainActivity : AppCompatActivity() {
 
         // Set default fragment
         if (savedInstanceState == null) {
-            navView.selectedItemId = R.id.navigation_my_deliveries
+            navView.selectedItemId = R.id.navigation_pending
         }
     }
 
