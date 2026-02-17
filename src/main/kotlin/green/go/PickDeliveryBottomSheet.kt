@@ -11,7 +11,9 @@ import green.go.model.Delivery
 
 class PickDeliveryBottomSheet(
     private val delivery: Delivery,
-    private val onAccept: (Delivery) -> Unit
+    private val buttonText: String = "Accept",
+    private val questionText: String = "Do you want to accept this delivery?",
+    private val onConfirm: (Delivery) -> Unit
 ) : BottomSheetDialogFragment() {
 
     override fun onCreateView(
@@ -29,6 +31,7 @@ class PickDeliveryBottomSheet(
         val tvPickupAddress = view.findViewById<TextView>(R.id.tvPickupAddress)
         val tvDeliveryAddress = view.findViewById<TextView>(R.id.tvDeliveryAddress)
         val tvCost = view.findViewById<TextView>(R.id.tvCost)
+        val tvQuestion = view.findViewById<TextView>(R.id.tvQuestion)
         val btnAccept = view.findViewById<Button>(R.id.btnAccept)
         val btnCancel = view.findViewById<Button>(R.id.btnCancel)
 
@@ -36,9 +39,11 @@ class PickDeliveryBottomSheet(
         tvPickupAddress.text = "Pickup: ${delivery.pickupAddress}"
         tvDeliveryAddress.text = "Deliver to: ${delivery.deliveryAddress}"
         tvCost.text = "${delivery.cost} RON"
+        tvQuestion.text = questionText
+        btnAccept.text = buttonText
 
         btnAccept.setOnClickListener {
-            onAccept(delivery)
+            onConfirm(delivery)
             dismiss()
         }
 

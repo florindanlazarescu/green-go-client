@@ -1,6 +1,5 @@
 package green.go
 
-import android.app.AlertDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -50,22 +49,15 @@ class PickedUpFragment : Fragment() {
 
     private fun handleDeliveryClick(delivery: Delivery) {
         if (delivery.status == "PICKED_UP") {
-            showConfirmationDialog(
-                message = "Confirm you have successfully delivered this order.",
+            val bottomSheet = PickDeliveryBottomSheet(
                 delivery = delivery,
-                nextStatus = "DELIVERED"
-            )
-        }
-    }
-
-    private fun showConfirmationDialog(message: String, delivery: Delivery, nextStatus: String) {
-        AlertDialog.Builder(requireContext())
-            .setMessage(message)
-            .setPositiveButton("Yes") { _, _ ->
-                updateDeliveryStatus(delivery, nextStatus)
+                buttonText = "Delivered",
+                questionText = "Confirm you have successfully delivered this order."
+            ) {
+                updateDeliveryStatus(it, "DELIVERED")
             }
-            .setNegativeButton("No", null)
-            .show()
+            bottomSheet.show(parentFragmentManager, "PickDeliveryBottomSheet")
+        }
     }
 
     private fun updateDeliveryStatus(delivery: Delivery, newStatus: String) {
