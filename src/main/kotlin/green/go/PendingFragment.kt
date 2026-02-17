@@ -1,6 +1,5 @@
 package green.go
 
-import android.app.AlertDialog
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -80,10 +79,7 @@ class PendingFragment : Fragment() {
                             adapter.updateData(emptyList())
                         } else {
                             tvEmpty.visibility = View.GONE
-                            // Sort by pickup time
-                            val sortedDeliveries = deliveries.sortedBy {
-                                parseDate(it.pickUpTime).time
-                            }
+                            val sortedDeliveries = deliveries.sortedBy { parseDate(it.pickUpTime).time }
                             adapter.updateData(sortedDeliveries)
                         }
                     } else {
@@ -111,26 +107,13 @@ class PendingFragment : Fragment() {
     }
 
     private fun showPickOrderDialog(delivery: Delivery) {
-        val message = "Address: ${delivery.pickupAddress}\n" +
-                "Deliver to: ${delivery.deliveryAddress}\n" +
-                "Items: ${delivery.items}\n" +
-                "Cost: ${delivery.cost} RON\n" +
-                "Pickup Time: ${delivery.pickUpTime.replace("T", " ").replace("Z", "")}\n\n" +
-                "Want to pick this order?"
-
-        AlertDialog.Builder(requireContext())
-            .setTitle("Order #${delivery.orderId}")
-            .setMessage(message)
-            .setPositiveButton("Yes") { _, _ ->
-                confirmPickOrder(delivery)
-            }
-            .setNegativeButton("No", null)
-            .show()
+        val bottomSheet = PickDeliveryBottomSheet(delivery) {
+            confirmPickOrder(it)
+        }
+        bottomSheet.show(parentFragmentManager, "PickDeliveryBottomSheet")
     }
 
     private fun confirmPickOrder(delivery: Delivery) {
-        val sessionManager = SessionManager(requireContext())
-        // We know we saved ID as long
         val prefs = requireContext().getSharedPreferences(SessionManager.PREF_NAME, android.content.Context.MODE_PRIVATE)
         val courierId = prefs.getLong(SessionManager.KEY_ID, -1L)
 
@@ -149,7 +132,6 @@ class PendingFragment : Fragment() {
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful) {
                         Toast.makeText(context, response.body()?.message ?: "Order Updated", Toast.LENGTH_SHORT).show()
-                        // Refresh list to remove the updated item
                         fetchPendingDeliveries()
                     } else {
                         Toast.makeText(context, "Update Failed: ${response.code()}", Toast.LENGTH_SHORT).show()
