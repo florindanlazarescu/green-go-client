@@ -114,7 +114,7 @@ class PendingFragment : Fragment() {
         val message = "Address: ${delivery.pickupAddress}\n" +
                 "Deliver to: ${delivery.deliveryAddress}\n" +
                 "Items: ${delivery.items}\n" +
-                "Cost: $${delivery.cost}\n" +
+                "Cost: ${delivery.cost} RON\n" +
                 "Pickup Time: ${delivery.pickUpTime.replace("T", " ").replace("Z", "")}\n\n" +
                 "Want to pick this order?"
 

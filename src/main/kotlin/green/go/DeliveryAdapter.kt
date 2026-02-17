@@ -86,7 +86,7 @@ class DeliveryAdapter(
                 holder.tvAddress.text = "Deliver to: ${delivery.deliveryAddress}"
                 holder.tvPickupAddress.text = "Pickup: ${delivery.pickupAddress}"
                 holder.tvItems.text = "Items: ${delivery.items}"
-                holder.tvCost.text = "Cost: $${delivery.cost}"
+                holder.tvCost.text = "Cost: ${delivery.cost} RON"
             }
             else -> { // MODE_STANDARD
                 holder.tvOrderId.visibility = View.VISIBLE
@@ -105,7 +105,7 @@ class DeliveryAdapter(
                 holder.tvPickupAddress.text = "Pickup: ${delivery.pickupAddress}"
                 holder.tvItems.text = "Items: ${delivery.items}"
                 holder.tvPickUpTime.text = "Pickup Time: ${formatDate(delivery.pickUpTime)}"
-                holder.tvCost.text = "Cost: $${delivery.cost}"
+                holder.tvCost.text = "Cost: ${delivery.cost} RON"
             }
         }
 
