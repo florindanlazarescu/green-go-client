@@ -4,7 +4,9 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -18,21 +20,27 @@ import kotlinx.coroutines.withContext
 class MyDeliveriesFragment : Fragment() {
 
     private lateinit var adapter: DeliveryAdapter
-    private lateinit var tvEmpty: TextView
+    private lateinit var llEmptyState: LinearLayout
+    private lateinit var tvEmptyTitle: TextView
+    private lateinit var tvEmptyDesc: TextView
+    private lateinit var rvDeliveries: RecyclerView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Reuse the generic list layout
+        (activity as AppCompatActivity).supportActionBar?.title = "History"
+
         val view = inflater.inflate(R.layout.fragment_delivery_list, container, false)
-        val tvTitle = view.findViewById<TextView>(R.id.tvTitle)
-        tvEmpty = view.findViewById(R.id.tvEmpty)
-        val rvDeliveries = view.findViewById<RecyclerView>(R.id.rvDeliveries)
+        llEmptyState = view.findViewById(R.id.llEmptyState)
+        tvEmptyTitle = view.findViewById(R.id.tvEmptyTitle)
+        tvEmptyDesc = view.findViewById(R.id.tvEmptyDesc)
+        rvDeliveries = view.findViewById(R.id.rvDeliveries)
 
-        tvTitle.text = "Delivered Orders"
+        // Set specific empty state messages for history
+        tvEmptyTitle.text = "No order history"
+        tvEmptyDesc.text = "Your delivered orders will appear here"
 
-        // No click action defined for history items yet
         adapter = DeliveryAdapter(emptyList(), DeliveryAdapter.MODE_STANDARD) { }
         rvDeliveries.layoutManager = LinearLayoutManager(context)
         rvDeliveries.adapter = adapter
@@ -47,8 +55,8 @@ class MyDeliveriesFragment : Fragment() {
         val id = prefs.getLong(SessionManager.KEY_ID, -1L)
 
         if (id == -1L) {
-             tvEmpty.visibility = View.VISIBLE
-             tvEmpty.text = "Error: User ID not found in session."
+             llEmptyState.visibility = View.VISIBLE
+             rvDeliveries.visibility = View.GONE
              return
         }
 
@@ -58,27 +66,26 @@ class MyDeliveriesFragment : Fragment() {
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful) {
                         val deliveries = response.body()?.deliveries ?: emptyList()
-
-                        // Filter for only DELIVERED
                         val filtered = deliveries.filter { it.status == "DELIVERED" }
 
                         if (filtered.isEmpty()) {
-                            tvEmpty.visibility = View.VISIBLE
-                            tvEmpty.text = "No delivered orders found."
+                            llEmptyState.visibility = View.VISIBLE
+                            rvDeliveries.visibility = View.GONE
                             adapter.updateData(emptyList())
                         } else {
-                            tvEmpty.visibility = View.GONE
+                            llEmptyState.visibility = View.GONE
+                            rvDeliveries.visibility = View.VISIBLE
                             adapter.updateData(filtered)
                         }
                     } else {
-                        tvEmpty.visibility = View.VISIBLE
-                        tvEmpty.text = "Error: ${response.code()} ${response.message()}"
+                        llEmptyState.visibility = View.VISIBLE
+                        rvDeliveries.visibility = View.GONE
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    tvEmpty.visibility = View.VISIBLE
-                    tvEmpty.text = "Exception: ${e.message}"
+                    llEmptyState.visibility = View.VISIBLE
+                    rvDeliveries.visibility = View.GONE
                 }
             }
         }

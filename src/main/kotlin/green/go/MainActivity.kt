@@ -16,22 +16,25 @@ class MainActivity : AppCompatActivity() {
         val navView: BottomNavigationView = findViewById(R.id.nav_view)
 
         navView.setOnItemSelectedListener { item ->
-            var selectedFragment: Fragment? = null
-            when (item.itemId) {
-                R.id.navigation_my_deliveries -> selectedFragment = MyDeliveriesFragment()
-                R.id.navigation_pending -> selectedFragment = PendingFragment()
-                R.id.navigation_in_progress -> selectedFragment = InProgressFragment()
-                R.id.navigation_picked_up -> selectedFragment = PickedUpFragment()
+            val selectedFragment: Fragment? = when (item.itemId) {
+                R.id.navigation_my_deliveries -> MyDeliveriesFragment()
+                R.id.navigation_pending -> PendingFragment()
+                R.id.navigation_in_progress -> InProgressFragment()
+                R.id.navigation_picked_up -> PickedUpFragment()
+                else -> null
             }
+            
             if (selectedFragment != null) {
+                supportActionBar?.title = item.title
                 replaceFragment(selectedFragment)
             }
             true
         }
 
-        // Set default fragment
+        // Set default fragment and initial title
         if (savedInstanceState == null) {
             navView.selectedItemId = R.id.navigation_pending
+            supportActionBar?.title = "Pending"
         }
     }
 
@@ -49,8 +52,8 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_profile -> {
+                supportActionBar?.title = "Profile"
                 replaceFragment(ProfileFragment())
-                // Optionally deselect bottom nav items or handle back stack
                 true
             }
             else -> super.onOptionsItemSelected(item)

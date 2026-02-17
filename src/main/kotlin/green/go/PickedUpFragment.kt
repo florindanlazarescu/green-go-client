@@ -4,8 +4,10 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -23,18 +25,25 @@ import kotlinx.coroutines.withContext
 class PickedUpFragment : Fragment() {
 
     private lateinit var adapter: DeliveryAdapter
-    private lateinit var tvEmpty: TextView
+    private lateinit var llEmptyState: LinearLayout
+    private lateinit var tvEmptyTitle: TextView
+    private lateinit var tvEmptyDesc: TextView
+    private lateinit var rvDeliveries: RecyclerView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        val view = inflater.inflate(R.layout.fragment_delivery_list, container, false)
-        val tvTitle = view.findViewById<TextView>(R.id.tvTitle)
-        tvEmpty = view.findViewById(R.id.tvEmpty)
-        val rvDeliveries = view.findViewById<RecyclerView>(R.id.rvDeliveries)
+        (activity as AppCompatActivity).supportActionBar?.title = "Picked Up"
 
-        tvTitle.text = "Picked Up"
+        val view = inflater.inflate(R.layout.fragment_delivery_list, container, false)
+        llEmptyState = view.findViewById(R.id.llEmptyState)
+        tvEmptyTitle = view.findViewById(R.id.tvEmptyTitle)
+        tvEmptyDesc = view.findViewById(R.id.tvEmptyDesc)
+        rvDeliveries = view.findViewById(R.id.rvDeliveries)
+
+        tvEmptyTitle.setText(R.string.empty_pickedup_title)
+        tvEmptyDesc.setText(R.string.empty_pickedup_desc)
 
         adapter = DeliveryAdapter(emptyList(), DeliveryAdapter.MODE_ACTIVE) { delivery ->
             handleDeliveryClick(delivery)
@@ -97,8 +106,8 @@ class PickedUpFragment : Fragment() {
         val id = prefs.getLong(SessionManager.KEY_ID, -1L)
 
         if (id == -1L) {
-             tvEmpty.visibility = View.VISIBLE
-             tvEmpty.text = "Error: User ID not found in session."
+             llEmptyState.visibility = View.VISIBLE
+             rvDeliveries.visibility = View.GONE
              return
         }
 
@@ -114,22 +123,23 @@ class PickedUpFragment : Fragment() {
                     if (response.isSuccessful) {
                         val deliveries = response.body()?.deliveries ?: emptyList()
                         if (deliveries.isEmpty()) {
-                            tvEmpty.visibility = View.VISIBLE
-                            tvEmpty.text = "No picked up deliveries."
+                            llEmptyState.visibility = View.VISIBLE
+                            rvDeliveries.visibility = View.GONE
                             adapter.updateData(emptyList())
                         } else {
-                            tvEmpty.visibility = View.GONE
+                            llEmptyState.visibility = View.GONE
+                            rvDeliveries.visibility = View.VISIBLE
                             adapter.updateData(deliveries)
                         }
                     } else {
-                        tvEmpty.visibility = View.VISIBLE
-                        tvEmpty.text = "Error: ${response.code()} ${response.message()}"
+                        llEmptyState.visibility = View.VISIBLE
+                        rvDeliveries.visibility = View.GONE
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    tvEmpty.visibility = View.VISIBLE
-                    tvEmpty.text = "Exception: ${e.message}"
+                    llEmptyState.visibility = View.VISIBLE
+                    rvDeliveries.visibility = View.GONE
                 }
             }
         }

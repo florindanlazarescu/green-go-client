@@ -4,4 +4,16 @@
     <string name="password_hint">Password</string>
     <string name="login_button">Login</string>
     <string name="welcome_back">Welcome Back!</string>
+
+    <!-- Empty States Pending -->
+    <string name="empty_pending_title">No new delivery orders</string>
+    <string name="empty_pending_desc">We will automatically check for new orders</string>
+
+    <!-- Empty States In Progress -->
+    <string name="empty_inprogress_title">No orders to pick up from the restaurant</string>
+    <string name="empty_inprogress_desc">We will automatically check for new orders</string>
+
+    <!-- Empty States Picked Up -->
+    <string name="empty_pickedup_title">No orders to deliver to the customer</string>
+    <string name="empty_pickedup_desc">We will automatically check for new orders</string>
 </resources>
