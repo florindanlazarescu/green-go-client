@@ -9,6 +9,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import green.go.utils.SessionManager
 
 class ProfileFragment : Fragment() {
@@ -49,13 +50,24 @@ class ProfileFragment : Fragment() {
         }
 
         cvLogout.setOnClickListener {
-            sessionManager.clearSession()
-            val intent = Intent(requireContext(), LoginActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
-            requireActivity().finish()
+            showLogoutConfirmation(sessionManager)
         }
 
         return view
+    }
+
+    private fun showLogoutConfirmation(sessionManager: SessionManager) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Logout")
+            .setMessage("Are you sure you want to log out from GreenGO?")
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Logout") { _, _ ->
+                sessionManager.clearSession()
+                val intent = Intent(requireContext(), LoginActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+                requireActivity().finish()
+            }
+            .show()
     }
 }
