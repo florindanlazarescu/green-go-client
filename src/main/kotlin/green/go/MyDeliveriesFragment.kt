@@ -46,7 +46,10 @@ class MyDeliveriesFragment : Fragment() {
         tvEmptyTitle.text = "No order history"
         tvEmptyDesc.text = "Your delivered orders will appear here"
 
-        adapter = DeliveryAdapter(emptyList(), DeliveryAdapter.MODE_STANDARD) { }
+        adapter = DeliveryAdapter(emptyList(), DeliveryAdapter.MODE_STANDARD) { delivery ->
+            val bottomSheet = DeliveryDetailsBottomSheet(delivery)
+            bottomSheet.show(parentFragmentManager, "DeliveryDetailsBottomSheet")
+        }
         rvDeliveries.layoutManager = LinearLayoutManager(context)
         rvDeliveries.adapter = adapter
 
