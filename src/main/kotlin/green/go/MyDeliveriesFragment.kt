@@ -5,11 +5,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import green.go.network.RetrofitClient
 import green.go.utils.SessionManager
 import kotlinx.coroutines.CoroutineScope
@@ -24,6 +26,8 @@ class MyDeliveriesFragment : Fragment() {
     private lateinit var tvEmptyTitle: TextView
     private lateinit var tvEmptyDesc: TextView
     private lateinit var rvDeliveries: RecyclerView
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
+    private lateinit var progressBar: ProgressBar
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -36,8 +40,9 @@ class MyDeliveriesFragment : Fragment() {
         tvEmptyTitle = view.findViewById(R.id.tvEmptyTitle)
         tvEmptyDesc = view.findViewById(R.id.tvEmptyDesc)
         rvDeliveries = view.findViewById(R.id.rvDeliveries)
+        swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout)
+        progressBar = view.findViewById(R.id.progressBar)
 
-        // Set specific empty state messages for history
         tvEmptyTitle.text = "No order history"
         tvEmptyDesc.text = "Your delivered orders will appear here"
 
@@ -45,12 +50,17 @@ class MyDeliveriesFragment : Fragment() {
         rvDeliveries.layoutManager = LinearLayoutManager(context)
         rvDeliveries.adapter = adapter
 
-        fetchMyDeliveries()
+        swipeRefreshLayout.setOnRefreshListener {
+            fetchMyDeliveries(isManualRefresh = true)
+        }
+        swipeRefreshLayout.setColorSchemeResources(R.color.colorPrimary)
+
+        fetchMyDeliveries(isManualRefresh = false)
 
         return view
     }
 
-    private fun fetchMyDeliveries() {
+    private fun fetchMyDeliveries(isManualRefresh: Boolean) {
         val prefs = requireContext().getSharedPreferences(SessionManager.PREF_NAME, android.content.Context.MODE_PRIVATE)
         val id = prefs.getLong(SessionManager.KEY_ID, -1L)
 
@@ -60,10 +70,19 @@ class MyDeliveriesFragment : Fragment() {
              return
         }
 
+        if (!isManualRefresh) {
+            progressBar.visibility = View.VISIBLE
+            llEmptyState.visibility = View.GONE
+            rvDeliveries.visibility = View.GONE
+        }
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val response = RetrofitClient.instance.getDeliveriesByCourier(id)
                 withContext(Dispatchers.Main) {
+                    progressBar.visibility = View.GONE
+                    swipeRefreshLayout.isRefreshing = false
+                    
                     if (response.isSuccessful) {
                         val deliveries = response.body()?.deliveries ?: emptyList()
                         val filtered = deliveries.filter { it.status == "DELIVERED" }
@@ -84,6 +103,8 @@ class MyDeliveriesFragment : Fragment() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
+                    progressBar.visibility = View.GONE
+                    swipeRefreshLayout.isRefreshing = false
                     llEmptyState.visibility = View.VISIBLE
                     rvDeliveries.visibility = View.GONE
                 }

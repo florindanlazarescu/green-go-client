@@ -5,12 +5,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import green.go.model.ByCourier
 import green.go.model.Delivery
 import green.go.model.DeliverySearchRequest
@@ -29,6 +31,8 @@ class InProgressFragment : Fragment() {
     private lateinit var tvEmptyTitle: TextView
     private lateinit var tvEmptyDesc: TextView
     private lateinit var rvDeliveries: RecyclerView
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
+    private lateinit var progressBar: ProgressBar
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -41,6 +45,8 @@ class InProgressFragment : Fragment() {
         tvEmptyTitle = view.findViewById(R.id.tvEmptyTitle)
         tvEmptyDesc = view.findViewById(R.id.tvEmptyDesc)
         rvDeliveries = view.findViewById(R.id.rvDeliveries)
+        swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout)
+        progressBar = view.findViewById(R.id.progressBar)
 
         tvEmptyTitle.setText(R.string.empty_inprogress_title)
         tvEmptyDesc.setText(R.string.empty_inprogress_desc)
@@ -51,7 +57,12 @@ class InProgressFragment : Fragment() {
         rvDeliveries.layoutManager = LinearLayoutManager(context)
         rvDeliveries.adapter = adapter
 
-        fetchInProgressDeliveries()
+        swipeRefreshLayout.setOnRefreshListener {
+            fetchInProgressDeliveries(isManualRefresh = true)
+        }
+        swipeRefreshLayout.setColorSchemeResources(R.color.colorPrimary)
+
+        fetchInProgressDeliveries(isManualRefresh = false)
 
         return view
     }
@@ -78,6 +89,8 @@ class InProgressFragment : Fragment() {
             return
         }
 
+        progressBar.visibility = View.VISIBLE
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val response = RetrofitClient.instance.updateDeliveryStatus(
@@ -86,22 +99,24 @@ class InProgressFragment : Fragment() {
                     courierId = courierId
                 )
                 withContext(Dispatchers.Main) {
+                    progressBar.visibility = View.GONE
                     if (response.isSuccessful) {
                         Toast.makeText(context, response.body()?.message ?: "Order Updated", Toast.LENGTH_SHORT).show()
-                        fetchInProgressDeliveries()
+                        fetchInProgressDeliveries(isManualRefresh = false)
                     } else {
                         Toast.makeText(context, "Update Failed: ${response.code()}", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
+                    progressBar.visibility = View.GONE
                     Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
 
-    private fun fetchInProgressDeliveries() {
+    private fun fetchInProgressDeliveries(isManualRefresh: Boolean) {
         val prefs = requireContext().getSharedPreferences(SessionManager.PREF_NAME, android.content.Context.MODE_PRIVATE)
         val id = prefs.getLong(SessionManager.KEY_ID, -1L)
 
@@ -109,6 +124,12 @@ class InProgressFragment : Fragment() {
              llEmptyState.visibility = View.VISIBLE
              rvDeliveries.visibility = View.GONE
              return
+        }
+
+        if (!isManualRefresh) {
+            progressBar.visibility = View.VISIBLE
+            llEmptyState.visibility = View.GONE
+            rvDeliveries.visibility = View.GONE
         }
 
         val request = DeliverySearchRequest(
@@ -120,6 +141,8 @@ class InProgressFragment : Fragment() {
             try {
                 val response = RetrofitClient.instance.searchDeliveries(request)
                 withContext(Dispatchers.Main) {
+                    progressBar.visibility = View.GONE
+                    swipeRefreshLayout.isRefreshing = false
                     if (response.isSuccessful) {
                         val deliveries = response.body()?.deliveries ?: emptyList()
                         if (deliveries.isEmpty()) {
@@ -138,6 +161,8 @@ class InProgressFragment : Fragment() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
+                    progressBar.visibility = View.GONE
+                    swipeRefreshLayout.isRefreshing = false
                     llEmptyState.visibility = View.VISIBLE
                     rvDeliveries.visibility = View.GONE
                 }
