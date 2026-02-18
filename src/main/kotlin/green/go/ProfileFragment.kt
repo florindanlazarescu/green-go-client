@@ -33,7 +33,6 @@ class ProfileFragment : Fragment() {
 
         tvUserInfo.text = email
         
-        // Format role based on database values (ADMIN, COURIER, MERCHANT)
         tvRole.text = when(role?.uppercase()) {
             "ADMIN" -> "Administrator"
             "COURIER" -> "Courier"
@@ -43,6 +42,7 @@ class ProfileFragment : Fragment() {
 
         cvChangePassword.setOnClickListener {
             parentFragmentManager.beginTransaction()
+                .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left, R.anim.slide_in_right, R.anim.slide_out_left)
                 .replace(R.id.nav_host_fragment, ChangePasswordFragment())
                 .addToBackStack(null)
                 .commit()
