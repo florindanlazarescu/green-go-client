@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -32,6 +33,7 @@ class PendingFragment : Fragment() {
     private lateinit var tvEmptyDesc: TextView
     private lateinit var rvDeliveries: RecyclerView
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
+    private lateinit var progressBar: ProgressBar
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -45,6 +47,7 @@ class PendingFragment : Fragment() {
         tvEmptyDesc = view.findViewById(R.id.tvEmptyDesc)
         rvDeliveries = view.findViewById(R.id.rvDeliveries)
         swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout)
+        progressBar = view.findViewById(R.id.progressBar)
 
         tvEmptyTitle.setText(R.string.empty_pending_title)
         tvEmptyDesc.setText(R.string.empty_pending_desc)
@@ -55,26 +58,30 @@ class PendingFragment : Fragment() {
         rvDeliveries.layoutManager = LinearLayoutManager(context)
         rvDeliveries.adapter = adapter
 
-        // Setup Pull-to-Refresh
         swipeRefreshLayout.setOnRefreshListener {
-            fetchPendingDeliveries()
+            fetchPendingDeliveries(isManualRefresh = true)
         }
-
-        // Set green color for refresh icon
         swipeRefreshLayout.setColorSchemeResources(R.color.colorPrimary)
 
-        fetchPendingDeliveries()
+        fetchPendingDeliveries(isManualRefresh = false)
 
         return view
     }
 
-    private fun fetchPendingDeliveries() {
-        swipeRefreshLayout.isRefreshing = true
+    private fun fetchPendingDeliveries(isManualRefresh: Boolean) {
+        if (!isManualRefresh) {
+            progressBar.visibility = View.VISIBLE
+            llEmptyState.visibility = View.GONE
+            rvDeliveries.visibility = View.GONE
+        }
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val response = RetrofitClient.instance.getPendingDeliveries()
                 withContext(Dispatchers.Main) {
+                    progressBar.visibility = View.GONE
                     swipeRefreshLayout.isRefreshing = false
+                    
                     if (response.isSuccessful) {
                         val deliveries = response.body()?.deliveries ?: emptyList()
                         if (deliveries.isEmpty()) {
@@ -94,6 +101,7 @@ class PendingFragment : Fragment() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
+                    progressBar.visibility = View.GONE
                     swipeRefreshLayout.isRefreshing = false
                     llEmptyState.visibility = View.VISIBLE
                     rvDeliveries.visibility = View.GONE
@@ -128,6 +136,8 @@ class PendingFragment : Fragment() {
             return
         }
 
+        progressBar.visibility = View.VISIBLE
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val response = RetrofitClient.instance.updateDeliveryStatus(
@@ -136,15 +146,17 @@ class PendingFragment : Fragment() {
                     courierId = courierId
                 )
                 withContext(Dispatchers.Main) {
+                    progressBar.visibility = View.GONE
                     if (response.isSuccessful) {
                         Toast.makeText(context, response.body()?.message ?: "Order Updated", Toast.LENGTH_SHORT).show()
-                        fetchPendingDeliveries()
+                        fetchPendingDeliveries(isManualRefresh = false)
                     } else {
                         Toast.makeText(context, "Update Failed: ${response.code()}", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
+                    progressBar.visibility = View.GONE
                     Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
