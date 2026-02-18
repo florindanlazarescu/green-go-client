@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -33,6 +34,7 @@ class InProgressFragment : Fragment() {
     private lateinit var rvDeliveries: RecyclerView
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     private lateinit var progressBar: ProgressBar
+    private lateinit var ivEmptyState: ImageView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -47,9 +49,11 @@ class InProgressFragment : Fragment() {
         rvDeliveries = view.findViewById(R.id.rvDeliveries)
         swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout)
         progressBar = view.findViewById(R.id.progressBar)
+        ivEmptyState = view.findViewById(R.id.ivEmptyState)
 
         tvEmptyTitle.setText(R.string.empty_inprogress_title)
         tvEmptyDesc.setText(R.string.empty_inprogress_desc)
+        ivEmptyState.setImageResource(R.drawable.in_progress)
 
         adapter = DeliveryAdapter(emptyList(), DeliveryAdapter.MODE_ACTIVE) { delivery ->
             handleDeliveryClick(delivery)

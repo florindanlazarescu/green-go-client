@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import green.go.model.ByCourier
+import green.go.model.Delivery
 import green.go.model.DeliverySearchRequest
 import green.go.model.DeliveryState
 import green.go.model.QueryFilter
@@ -15,6 +16,10 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
 
     private val _deliveryState = MutableLiveData<DeliveryState>()
     val deliveryState: LiveData<DeliveryState> = _deliveryState
+
+    // LiveData for status updates
+    private val _statusUpdateResult = MutableLiveData<Boolean>()
+    val statusUpdateResult: LiveData<Boolean> = _statusUpdateResult
 
     fun fetchPendingDeliveries() {
         _deliveryState.value = DeliveryState.Loading
@@ -33,6 +38,23 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
                 }
             } catch (e: Exception) {
                 _deliveryState.value = DeliveryState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    fun updateDeliveryStatus(delivery: Delivery, status: String, courierId: Long) {
+        viewModelScope.launch {
+            try {
+                val response = repository.updateDeliveryStatus(delivery.orderId, status, courierId)
+                if (response.isSuccessful) {
+                    _statusUpdateResult.value = true
+                    // Refresh current list after success
+                    fetchPendingDeliveries()
+                } else {
+                    _statusUpdateResult.value = false
+                }
+            } catch (e: Exception) {
+                _statusUpdateResult.value = false
             }
         }
     }

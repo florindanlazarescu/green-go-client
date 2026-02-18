@@ -4,9 +4,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -17,6 +19,7 @@ import green.go.model.Delivery
 import green.go.model.DeliveryState
 import green.go.network.DeliveryRepository
 import green.go.network.RetrofitClient
+import green.go.utils.SessionManager
 import green.go.viewmodel.DeliveryViewModel
 import green.go.viewmodel.DeliveryViewModelFactory
 import java.text.SimpleDateFormat
@@ -33,8 +36,8 @@ class PendingFragment : Fragment() {
     private lateinit var rvDeliveries: RecyclerView
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     private lateinit var progressBar: ProgressBar
+    private lateinit var ivEmptyState: ImageView
 
-    // MVVM ViewModel initialization
     private val viewModel: DeliveryViewModel by viewModels {
         DeliveryViewModelFactory(DeliveryRepository(RetrofitClient.instance))
     }
@@ -52,9 +55,11 @@ class PendingFragment : Fragment() {
         rvDeliveries = view.findViewById(R.id.rvDeliveries)
         swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout)
         progressBar = view.findViewById(R.id.progressBar)
+        ivEmptyState = view.findViewById(R.id.ivEmptyState)
 
         tvEmptyTitle.setText(R.string.empty_pending_title)
         tvEmptyDesc.setText(R.string.empty_pending_desc)
+        ivEmptyState.setImageResource(R.drawable.pending)
 
         setupRecyclerView()
         setupPullToRefresh()
@@ -112,6 +117,14 @@ class PendingFragment : Fragment() {
                 }
             }
         }
+
+        viewModel.statusUpdateResult.observe(viewLifecycleOwner) { success ->
+            if (success) {
+                Toast.makeText(context, "Order updated successfully", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Failed to update order", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun parseDate(dateString: String): Date {
@@ -125,9 +138,21 @@ class PendingFragment : Fragment() {
     }
 
     private fun showPickOrderDialog(delivery: Delivery) {
-        val bottomSheet = PickDeliveryBottomSheet(delivery, onConfirm = {
-            // Logica de confirmare poate fi mutată și ea în ViewModel pe viitor
-        })
+        val bottomSheet = PickDeliveryBottomSheet(delivery) {
+            confirmPickOrder(it)
+        }
         bottomSheet.show(parentFragmentManager, "PickDeliveryBottomSheet")
+    }
+
+    private fun confirmPickOrder(delivery: Delivery) {
+        val prefs = requireContext().getSharedPreferences(SessionManager.PREF_NAME, android.content.Context.MODE_PRIVATE)
+        val courierId = prefs.getLong(SessionManager.KEY_ID, -1L)
+
+        if (courierId == -1L) {
+            Toast.makeText(context, "Error: User ID not found.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        viewModel.updateDeliveryStatus(delivery, "IN_PROGRESS", courierId)
     }
 }
