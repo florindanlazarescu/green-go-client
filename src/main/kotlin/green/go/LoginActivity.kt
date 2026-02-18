@@ -6,6 +6,7 @@ import android.util.Patterns
 import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.widget.doAfterTextChanged
 import com.google.android.material.textfield.TextInputLayout
 import green.go.model.LoginRequest
@@ -22,6 +23,9 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var tilPassword: TextInputLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Install Splash Screen before super.onCreate()
+        installSplashScreen()
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 

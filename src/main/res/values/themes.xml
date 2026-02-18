@@ -19,4 +19,11 @@
         <item name="windowActionBar">true</item>
         <item name="windowNoTitle">false</item>
     </style>
+
+    <!-- Splash Screen Theme -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#4CAF50</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/logo_greengo</item>
+        <item name="postSplashScreenTheme">@style/Theme.GreenGoClient</item>
+    </style>
 </resources>
