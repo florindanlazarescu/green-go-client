@@ -4,45 +4,64 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.Fragment
+import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var viewPager: ViewPager2
+    private lateinit var navView: BottomNavigationView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val navView: BottomNavigationView = findViewById(R.id.nav_view)
+        viewPager = findViewById(R.id.viewPager)
+        navView = findViewById(R.id.nav_view)
 
+        // Setup Adapter
+        val adapter = ViewPagerAdapter(this)
+        viewPager.adapter = adapter
+
+        // Link BottomNavigationView with ViewPager2
         navView.setOnItemSelectedListener { item ->
-            val selectedFragment: Fragment? = when (item.itemId) {
-                R.id.navigation_my_deliveries -> MyDeliveriesFragment()
-                R.id.navigation_pending -> PendingFragment()
-                R.id.navigation_in_progress -> InProgressFragment()
-                R.id.navigation_picked_up -> PickedUpFragment()
-                else -> null
-            }
-            
-            if (selectedFragment != null) {
-                supportActionBar?.title = item.title
-                replaceFragment(selectedFragment)
+            when (item.itemId) {
+                R.id.navigation_pending -> viewPager.currentItem = 0
+                R.id.navigation_in_progress -> viewPager.currentItem = 1
+                R.id.navigation_picked_up -> viewPager.currentItem = 2
+                R.id.navigation_my_deliveries -> viewPager.currentItem = 3
             }
             true
         }
 
-        // Set default fragment and initial title
-        if (savedInstanceState == null) {
-            navView.selectedItemId = R.id.navigation_pending
-            supportActionBar?.title = "Pending"
-        }
-    }
+        // Update BottomNav when swiping
+        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                val menu = navView.menu
+                when (position) {
+                    0 -> {
+                        navView.selectedItemId = R.id.navigation_pending
+                        supportActionBar?.title = menu.findItem(R.id.navigation_pending).title
+                    }
+                    1 -> {
+                        navView.selectedItemId = R.id.navigation_in_progress
+                        supportActionBar?.title = menu.findItem(R.id.navigation_in_progress).title
+                    }
+                    2 -> {
+                        navView.selectedItemId = R.id.navigation_picked_up
+                        supportActionBar?.title = menu.findItem(R.id.navigation_picked_up).title
+                    }
+                    3 -> {
+                        navView.selectedItemId = R.id.navigation_my_deliveries
+                        supportActionBar?.title = menu.findItem(R.id.navigation_my_deliveries).title
+                    }
+                }
+            }
+        })
 
-    private fun replaceFragment(fragment: Fragment) {
-        supportFragmentManager.beginTransaction()
-            .setCustomAnimations(R.anim.fade_in, R.anim.fade_out)
-            .replace(R.id.nav_host_fragment, fragment)
-            .commit()
+        // Set default title
+        supportActionBar?.title = "Pending"
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -53,8 +72,12 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_profile -> {
-                supportActionBar?.title = "Profile"
-                replaceFragment(ProfileFragment())
+                // Open Profile as a separate transaction over the pager
+                supportFragmentManager.beginTransaction()
+                    .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left, R.anim.slide_in_left, R.anim.slide_out_right)
+                    .replace(android.R.id.content, ProfileFragment())
+                    .addToBackStack(null)
+                    .commit()
                 true
             }
             else -> super.onOptionsItemSelected(item)

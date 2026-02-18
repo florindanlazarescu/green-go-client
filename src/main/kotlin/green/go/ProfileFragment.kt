@@ -43,8 +43,8 @@ class ProfileFragment : Fragment() {
 
         cvChangePassword.setOnClickListener {
             parentFragmentManager.beginTransaction()
-                .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left, R.anim.slide_in_right, R.anim.slide_out_left)
-                .replace(R.id.nav_host_fragment, ChangePasswordFragment())
+                .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left, R.anim.slide_in_left, R.anim.slide_out_right)
+                .replace(android.R.id.content, ChangePasswordFragment()) // Correct container
                 .addToBackStack(null)
                 .commit()
         }
