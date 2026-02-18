@@ -15,8 +15,6 @@ if (keystorePropertiesFile.exists()) {
 group = "green.go"
 version = "1.0-SNAPSHOT"
 
-// Repositories are defined in settings.gradle.kts
-
 android {
     namespace = "green.go"
     compileSdk = 35
@@ -77,6 +75,12 @@ dependencies {
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+
+    // Lifecycle & MVVM
+    val lifecycleVersion = "2.6.2"
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:$lifecycleVersion")
+    implementation("androidx.fragment:fragment-ktx:1.6.2")
 
     // Networking
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
