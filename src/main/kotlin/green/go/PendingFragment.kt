@@ -1,8 +1,6 @@
 package green.go
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import green.go.model.Delivery
 import green.go.network.RetrofitClient
 import green.go.utils.SessionManager
@@ -32,14 +31,7 @@ class PendingFragment : Fragment() {
     private lateinit var tvEmptyTitle: TextView
     private lateinit var tvEmptyDesc: TextView
     private lateinit var rvDeliveries: RecyclerView
-
-    private val handler = Handler(Looper.getMainLooper())
-    private val refreshRunnable = object : Runnable {
-        override fun run() {
-            fetchPendingDeliveries()
-            handler.postDelayed(this, 10000)
-        }
-    }
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -52,6 +44,7 @@ class PendingFragment : Fragment() {
         tvEmptyTitle = view.findViewById(R.id.tvEmptyTitle)
         tvEmptyDesc = view.findViewById(R.id.tvEmptyDesc)
         rvDeliveries = view.findViewById(R.id.rvDeliveries)
+        swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout)
 
         tvEmptyTitle.setText(R.string.empty_pending_title)
         tvEmptyDesc.setText(R.string.empty_pending_desc)
@@ -62,24 +55,26 @@ class PendingFragment : Fragment() {
         rvDeliveries.layoutManager = LinearLayoutManager(context)
         rvDeliveries.adapter = adapter
 
+        // Setup Pull-to-Refresh
+        swipeRefreshLayout.setOnRefreshListener {
+            fetchPendingDeliveries()
+        }
+
+        // Set green color for refresh icon
+        swipeRefreshLayout.setColorSchemeResources(R.color.colorPrimary)
+
+        fetchPendingDeliveries()
+
         return view
     }
 
-    override fun onResume() {
-        super.onResume()
-        handler.post(refreshRunnable)
-    }
-
-    override fun onPause() {
-        super.onPause()
-        handler.removeCallbacks(refreshRunnable)
-    }
-
     private fun fetchPendingDeliveries() {
+        swipeRefreshLayout.isRefreshing = true
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val response = RetrofitClient.instance.getPendingDeliveries()
                 withContext(Dispatchers.Main) {
+                    swipeRefreshLayout.isRefreshing = false
                     if (response.isSuccessful) {
                         val deliveries = response.body()?.deliveries ?: emptyList()
                         if (deliveries.isEmpty()) {
@@ -99,6 +94,7 @@ class PendingFragment : Fragment() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
+                    swipeRefreshLayout.isRefreshing = false
                     llEmptyState.visibility = View.VISIBLE
                     rvDeliveries.visibility = View.GONE
                 }
@@ -117,9 +113,9 @@ class PendingFragment : Fragment() {
     }
 
     private fun showPickOrderDialog(delivery: Delivery) {
-        val bottomSheet = PickDeliveryBottomSheet(delivery) {
+        val bottomSheet = PickDeliveryBottomSheet(delivery, onConfirm = {
             confirmPickOrder(it)
-        }
+        })
         bottomSheet.show(parentFragmentManager, "PickDeliveryBottomSheet")
     }
 
