@@ -1,5 +1,5 @@
 plugins {
-    id("com.android.application") version "8.2.0"
+    id("com.android.application") version "8.13.2"
     kotlin("android") version "1.9.22"
 }
 
@@ -27,8 +27,8 @@ android {
         applicationId = "green.go"
         minSdk = 24
         targetSdk = 35
-        versionCode = 4
-        versionName = "2.2"
+        versionCode = 6
+        versionName = "2.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:4042/\"")

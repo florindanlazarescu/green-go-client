@@ -1,6 +1,8 @@
 package green.go
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,19 +13,17 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import green.go.model.ByCourier
 import green.go.model.Delivery
-import green.go.model.DeliverySearchRequest
-import green.go.model.QueryFilter
+import green.go.model.DeliveryState
+import green.go.network.DeliveryRepository
 import green.go.network.RetrofitClient
 import green.go.utils.SessionManager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import green.go.viewmodel.DeliveryViewModel
+import green.go.viewmodel.DeliveryViewModelFactory
 
 class InProgressFragment : Fragment() {
 
@@ -35,6 +35,21 @@ class InProgressFragment : Fragment() {
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     private lateinit var progressBar: ProgressBar
     private lateinit var ivEmptyState: ImageView
+
+    private val viewModel: DeliveryViewModel by viewModels {
+        DeliveryViewModelFactory(DeliveryRepository(RetrofitClient.instance))
+    }
+
+    private val handler = Handler(Looper.getMainLooper())
+    private val refreshRunnable = object : Runnable {
+        override fun run() {
+            val courierId = getCourierId()
+            if (courierId != -1L) {
+                viewModel.fetchInProgressDeliveries(courierId)
+            }
+            handler.postDelayed(this, 10000)
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -55,20 +70,76 @@ class InProgressFragment : Fragment() {
         tvEmptyDesc.setText(R.string.empty_inprogress_desc)
         ivEmptyState.setImageResource(R.drawable.in_progress)
 
+        setupRecyclerView()
+        setupPullToRefresh()
+        observeViewModel()
+
+        return view
+    }
+
+    override fun onResume() {
+        super.onResume()
+        handler.post(refreshRunnable)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        handler.removeCallbacks(refreshRunnable)
+    }
+
+    private fun setupRecyclerView() {
         adapter = DeliveryAdapter(emptyList(), DeliveryAdapter.MODE_ACTIVE) { delivery ->
             handleDeliveryClick(delivery)
         }
         rvDeliveries.layoutManager = LinearLayoutManager(context)
         rvDeliveries.adapter = adapter
+    }
 
+    private fun setupPullToRefresh() {
         swipeRefreshLayout.setOnRefreshListener {
-            fetchInProgressDeliveries(isManualRefresh = true)
+            val id = getCourierId()
+            if (id != -1L) viewModel.fetchInProgressDeliveries(id)
         }
         swipeRefreshLayout.setColorSchemeResources(R.color.colorPrimary)
+    }
 
-        fetchInProgressDeliveries(isManualRefresh = false)
+    private fun observeViewModel() {
+        viewModel.deliveryState.observe(viewLifecycleOwner) { state ->
+            swipeRefreshLayout.isRefreshing = false
+            when (state) {
+                is DeliveryState.Loading -> {
+                    if (!swipeRefreshLayout.isRefreshing && adapter.itemCount == 0) {
+                        progressBar.visibility = View.VISIBLE
+                        llEmptyState.visibility = View.GONE
+                        rvDeliveries.visibility = View.GONE
+                    }
+                }
+                is DeliveryState.Success -> {
+                    progressBar.visibility = View.GONE
+                    llEmptyState.visibility = View.GONE
+                    rvDeliveries.visibility = View.VISIBLE
+                    adapter.updateData(state.deliveries)
+                }
+                is DeliveryState.Empty -> {
+                    progressBar.visibility = View.GONE
+                    llEmptyState.visibility = View.VISIBLE
+                    rvDeliveries.visibility = View.GONE
+                    adapter.updateData(emptyList())
+                }
+                is DeliveryState.Error -> {
+                    progressBar.visibility = View.GONE
+                    llEmptyState.visibility = View.VISIBLE
+                    tvEmptyTitle.text = "Error"
+                    tvEmptyDesc.text = state.message
+                    rvDeliveries.visibility = View.GONE
+                }
+            }
+        }
+    }
 
-        return view
+    private fun getCourierId(): Long {
+        val prefs = requireContext().getSharedPreferences(SessionManager.PREF_NAME, android.content.Context.MODE_PRIVATE)
+        return prefs.getLong(SessionManager.KEY_ID, -1L)
     }
 
     private fun handleDeliveryClick(delivery: Delivery) {
@@ -78,99 +149,9 @@ class InProgressFragment : Fragment() {
                 buttonText = "Picked Up",
                 questionText = "Confirm you have picked up this order from the merchant."
             ) {
-                updateDeliveryStatus(it, "PICKED_UP")
+                viewModel.updateDeliveryStatus(it, "PICKED_UP", getCourierId())
             }
             bottomSheet.show(parentFragmentManager, "PickDeliveryBottomSheet")
-        }
-    }
-
-    private fun updateDeliveryStatus(delivery: Delivery, newStatus: String) {
-        val prefs = requireContext().getSharedPreferences(SessionManager.PREF_NAME, android.content.Context.MODE_PRIVATE)
-        val courierId = prefs.getLong(SessionManager.KEY_ID, -1L)
-
-        if (courierId == -1L) {
-            Toast.makeText(context, "Error: User ID not found.", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        progressBar.visibility = View.VISIBLE
-
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val response = RetrofitClient.instance.updateDeliveryStatus(
-                    orderId = delivery.orderId,
-                    status = newStatus,
-                    courierId = courierId
-                )
-                withContext(Dispatchers.Main) {
-                    progressBar.visibility = View.GONE
-                    if (response.isSuccessful) {
-                        Toast.makeText(context, response.body()?.message ?: "Order Updated", Toast.LENGTH_SHORT).show()
-                        fetchInProgressDeliveries(isManualRefresh = false)
-                    } else {
-                        Toast.makeText(context, "Update Failed: ${response.code()}", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    progressBar.visibility = View.GONE
-                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
-
-    private fun fetchInProgressDeliveries(isManualRefresh: Boolean) {
-        val prefs = requireContext().getSharedPreferences(SessionManager.PREF_NAME, android.content.Context.MODE_PRIVATE)
-        val id = prefs.getLong(SessionManager.KEY_ID, -1L)
-
-        if (id == -1L) {
-             llEmptyState.visibility = View.VISIBLE
-             rvDeliveries.visibility = View.GONE
-             return
-        }
-
-        if (!isManualRefresh) {
-            progressBar.visibility = View.VISIBLE
-            llEmptyState.visibility = View.GONE
-            rvDeliveries.visibility = View.GONE
-        }
-
-        val request = DeliverySearchRequest(
-            queryFilter = QueryFilter(ByCourier(id)),
-            statuses = listOf("IN_PROGRESS")
-        )
-
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val response = RetrofitClient.instance.searchDeliveries(request)
-                withContext(Dispatchers.Main) {
-                    progressBar.visibility = View.GONE
-                    swipeRefreshLayout.isRefreshing = false
-                    if (response.isSuccessful) {
-                        val deliveries = response.body()?.deliveries ?: emptyList()
-                        if (deliveries.isEmpty()) {
-                            llEmptyState.visibility = View.VISIBLE
-                            rvDeliveries.visibility = View.GONE
-                            adapter.updateData(emptyList())
-                        } else {
-                            llEmptyState.visibility = View.GONE
-                            rvDeliveries.visibility = View.VISIBLE
-                            adapter.updateData(deliveries)
-                        }
-                    } else {
-                        llEmptyState.visibility = View.VISIBLE
-                        rvDeliveries.visibility = View.GONE
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    progressBar.visibility = View.GONE
-                    swipeRefreshLayout.isRefreshing = false
-                    llEmptyState.visibility = View.VISIBLE
-                    rvDeliveries.visibility = View.GONE
-                }
-            }
         }
     }
 }

@@ -1,6 +1,8 @@
 package green.go
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -38,6 +40,14 @@ class PendingFragment : Fragment() {
     private lateinit var progressBar: ProgressBar
     private lateinit var ivEmptyState: ImageView
 
+    private val handler = Handler(Looper.getMainLooper())
+    private val refreshRunnable = object : Runnable {
+        override fun run() {
+            viewModel.fetchPendingDeliveries()
+            handler.postDelayed(this, 10000)
+        }
+    }
+
     private val viewModel: DeliveryViewModel by viewModels {
         DeliveryViewModelFactory(DeliveryRepository(RetrofitClient.instance))
     }
@@ -65,9 +75,17 @@ class PendingFragment : Fragment() {
         setupPullToRefresh()
         observeViewModel()
 
-        viewModel.fetchPendingDeliveries()
-
         return view
+    }
+
+    override fun onResume() {
+        super.onResume()
+        handler.post(refreshRunnable)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        handler.removeCallbacks(refreshRunnable)
     }
 
     private fun setupRecyclerView() {
@@ -91,9 +109,11 @@ class PendingFragment : Fragment() {
             
             when (state) {
                 is DeliveryState.Loading -> {
-                    if (!swipeRefreshLayout.isRefreshing) progressBar.visibility = View.VISIBLE
-                    llEmptyState.visibility = View.GONE
-                    rvDeliveries.visibility = View.GONE
+                    if (!swipeRefreshLayout.isRefreshing && adapter.itemCount == 0) {
+                        progressBar.visibility = View.VISIBLE
+                        llEmptyState.visibility = View.GONE
+                        rvDeliveries.visibility = View.GONE
+                    }
                 }
                 is DeliveryState.Success -> {
                     progressBar.visibility = View.GONE
