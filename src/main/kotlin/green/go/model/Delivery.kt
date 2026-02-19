@@ -9,7 +9,8 @@ data class Delivery(
     val items: Int,
     val cost: Double,
     val status: String,
-    val pickUpTime: String
+    val pickUpTime: String,
+    val deliveredTime: String? = null
 )
 
 data class DeliveryResponse(

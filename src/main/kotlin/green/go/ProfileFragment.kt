@@ -9,10 +9,19 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import green.go.network.DeliveryRepository
+import green.go.network.RetrofitClient
 import green.go.utils.SessionManager
+import green.go.viewmodel.DeliveryViewModel
+import green.go.viewmodel.DeliveryViewModelFactory
 
 class ProfileFragment : Fragment() {
+
+    private val viewModel: DeliveryViewModel by viewModels {
+        DeliveryViewModelFactory(DeliveryRepository(RetrofitClient.instance))
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -24,6 +33,8 @@ class ProfileFragment : Fragment() {
 
         val tvUserInfo = view.findViewById<TextView>(R.id.tvUserInfo)
         val tvRole = view.findViewById<TextView>(R.id.tvRole)
+        val tvDeliveriesCount = view.findViewById<TextView>(R.id.tvDeliveriesCount)
+        val tvEarningsAmount = view.findViewById<TextView>(R.id.tvEarningsAmount)
         val cvChangePassword = view.findViewById<CardView>(R.id.cvChangePassword)
         val cvLogout = view.findViewById<CardView>(R.id.cvLogout)
 
@@ -31,6 +42,7 @@ class ProfileFragment : Fragment() {
         val prefs = requireContext().getSharedPreferences(SessionManager.PREF_NAME, android.content.Context.MODE_PRIVATE)
         val email = prefs.getString(SessionManager.KEY_EMAIL, "Unknown User")
         val role = prefs.getString(SessionManager.KEY_ROLE, "USER")
+        val courierId = prefs.getLong(SessionManager.KEY_ID, -1L)
 
         tvUserInfo.text = email
         
@@ -41,10 +53,21 @@ class ProfileFragment : Fragment() {
             else -> "User"
         }
 
+        // Observe stats from ViewModel
+        viewModel.todayStats.observe(viewLifecycleOwner) { stats ->
+            tvDeliveriesCount.text = stats.count.toString()
+            tvEarningsAmount.text = String.format("%.2f RON", stats.earnings)
+        }
+
+        // Initial fetch of stats
+        if (courierId != -1L) {
+            viewModel.fetchTodayStats(courierId)
+        }
+
         cvChangePassword.setOnClickListener {
             parentFragmentManager.beginTransaction()
                 .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left, R.anim.slide_in_left, R.anim.slide_out_right)
-                .replace(android.R.id.content, ChangePasswordFragment()) // Correct container
+                .replace(android.R.id.content, ChangePasswordFragment())
                 .addToBackStack(null)
                 .commit()
         }

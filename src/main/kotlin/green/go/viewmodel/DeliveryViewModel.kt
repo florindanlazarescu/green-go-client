@@ -11,15 +11,22 @@ import green.go.model.DeliveryState
 import green.go.model.QueryFilter
 import green.go.network.DeliveryRepository
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+data class DailyStats(val count: Int, val earnings: Double)
 
 class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel() {
 
     private val _deliveryState = MutableLiveData<DeliveryState>()
     val deliveryState: LiveData<DeliveryState> = _deliveryState
 
-    // LiveData for status updates
     private val _statusUpdateResult = MutableLiveData<Boolean>()
     val statusUpdateResult: LiveData<Boolean> = _statusUpdateResult
+
+    private val _todayStats = MutableLiveData<DailyStats>()
+    val todayStats: LiveData<DailyStats> = _todayStats
 
     fun fetchPendingDeliveries() {
         _deliveryState.value = DeliveryState.Loading
@@ -48,7 +55,6 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
                 val response = repository.updateDeliveryStatus(delivery.orderId, status, courierId)
                 if (response.isSuccessful) {
                     _statusUpdateResult.value = true
-                    // Refresh current list after success
                     fetchPendingDeliveries()
                 } else {
                     _statusUpdateResult.value = false
@@ -69,6 +75,29 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
 
     fun fetchHistory(courierId: Long) {
         fetchByStatus(courierId, listOf("DELIVERED"))
+    }
+
+    fun fetchTodayStats(courierId: Long) {
+        viewModelScope.launch {
+            try {
+                val response = repository.getDeliveriesByCourier(courierId)
+                if (response.isSuccessful) {
+                    val allDeliveries = response.body()?.deliveries ?: emptyList()
+                    val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                    
+                    val todayDeliveries = allDeliveries.filter { 
+                        it.status == "DELIVERED" && it.deliveredTime?.startsWith(today) == true
+                    }
+                    
+                    val count = todayDeliveries.size
+                    val earnings = todayDeliveries.sumOf { it.cost }
+                    
+                    _todayStats.value = DailyStats(count, earnings)
+                }
+            } catch (e: Exception) {
+                // Handle or ignore for stats
+            }
+        }
     }
 
     private fun fetchByStatus(courierId: Long, statuses: List<String>) {
