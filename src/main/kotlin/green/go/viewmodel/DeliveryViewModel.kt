@@ -28,6 +28,10 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
     private val _todayStats = MutableLiveData<DailyStats>()
     val todayStats: LiveData<DailyStats> = _todayStats
 
+    // Specific LiveData for the badge count
+    private val _pendingCount = MutableLiveData<Int>()
+    val pendingCount: LiveData<Int> = _pendingCount
+
     fun fetchPendingDeliveries() {
         _deliveryState.value = DeliveryState.Loading
         viewModelScope.launch {
@@ -35,6 +39,7 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
                 val response = repository.getPendingDeliveries()
                 if (response.isSuccessful) {
                     val deliveries = response.body()?.deliveries ?: emptyList()
+                    _pendingCount.value = deliveries.size // Update badge count
                     if (deliveries.isEmpty()) {
                         _deliveryState.value = DeliveryState.Empty
                     } else {
@@ -46,6 +51,18 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
             } catch (e: Exception) {
                 _deliveryState.value = DeliveryState.Error(e.message ?: "Unknown error")
             }
+        }
+    }
+
+    // Silent check for the badge only (no UI state change)
+    fun silentFetchPendingCount() {
+        viewModelScope.launch {
+            try {
+                val response = repository.getPendingDeliveries()
+                if (response.isSuccessful) {
+                    _pendingCount.value = response.body()?.deliveries?.size ?: 0
+                }
+            } catch (e: Exception) { /* Ignore background errors */ }
         }
     }
 
@@ -90,14 +107,11 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
                     }
                     
                     val count = todayDeliveries.size
-                    // Calculate earnings based on courier's individual tariff
                     val earnings = count * tariff
                     
                     _todayStats.value = DailyStats(count, earnings)
                 }
-            } catch (e: Exception) {
-                // Handle or ignore for stats
-            }
+            } catch (e: Exception) { }
         }
     }
 

@@ -1,16 +1,35 @@
 package green.go
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.Menu
 import android.view.MenuItem
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import green.go.network.DeliveryRepository
+import green.go.network.RetrofitClient
+import green.go.viewmodel.DeliveryViewModel
+import green.go.viewmodel.DeliveryViewModelFactory
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var viewPager: ViewPager2
     private lateinit var navView: BottomNavigationView
+
+    private val viewModel: DeliveryViewModel by viewModels {
+        DeliveryViewModelFactory(DeliveryRepository(RetrofitClient.instance))
+    }
+
+    private val handler = Handler(Looper.getMainLooper())
+    private val badgeRefreshRunnable = object : Runnable {
+        override fun run() {
+            viewModel.silentFetchPendingCount()
+            handler.postDelayed(this, 15000) // Check every 15 seconds
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,8 +79,27 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
+        // Observe pending count for badge
+        viewModel.pendingCount.observe(this) { count ->
+            val badge = navView.getOrCreateBadge(R.id.navigation_pending)
+            if (count > 0) {
+                badge.isVisible = true
+                badge.number = count
+            } else {
+                badge.isVisible = false
+            }
+        }
+
         // Set default title
         supportActionBar?.title = "Pending"
+        
+        // Start background badge check
+        handler.post(badgeRefreshRunnable)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        handler.removeCallbacks(badgeRefreshRunnable)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -72,7 +110,6 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_profile -> {
-                // Open Profile as a separate transaction over the pager
                 supportFragmentManager.beginTransaction()
                     .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left, R.anim.slide_in_left, R.anim.slide_out_right)
                     .replace(android.R.id.content, ProfileFragment())
