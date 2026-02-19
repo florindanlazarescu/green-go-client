@@ -77,7 +77,7 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
         fetchByStatus(courierId, listOf("DELIVERED"))
     }
 
-    fun fetchTodayStats(courierId: Long) {
+    fun fetchTodayStats(courierId: Long, tariff: Double) {
         viewModelScope.launch {
             try {
                 val response = repository.getDeliveriesByCourier(courierId)
@@ -90,7 +90,8 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
                     }
                     
                     val count = todayDeliveries.size
-                    val earnings = todayDeliveries.sumOf { it.cost }
+                    // Calculate earnings based on courier's individual tariff
+                    val earnings = count * tariff
                     
                     _todayStats.value = DailyStats(count, earnings)
                 }

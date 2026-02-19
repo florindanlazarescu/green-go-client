@@ -16,6 +16,7 @@ import green.go.network.RetrofitClient
 import green.go.utils.SessionManager
 import green.go.viewmodel.DeliveryViewModel
 import green.go.viewmodel.DeliveryViewModelFactory
+import java.util.Locale
 
 class ProfileFragment : Fragment() {
 
@@ -43,6 +44,7 @@ class ProfileFragment : Fragment() {
         val email = prefs.getString(SessionManager.KEY_EMAIL, "Unknown User")
         val role = prefs.getString(SessionManager.KEY_ROLE, "USER")
         val courierId = prefs.getLong(SessionManager.KEY_ID, -1L)
+        val tariff = prefs.getFloat(SessionManager.KEY_TARIFF, 0.0f).toDouble()
 
         tvUserInfo.text = email
         
@@ -56,12 +58,12 @@ class ProfileFragment : Fragment() {
         // Observe stats from ViewModel
         viewModel.todayStats.observe(viewLifecycleOwner) { stats ->
             tvDeliveriesCount.text = stats.count.toString()
-            tvEarningsAmount.text = String.format("%.2f RON", stats.earnings)
+            tvEarningsAmount.text = String.format(Locale.getDefault(), "%.2f RON", stats.earnings)
         }
 
-        // Initial fetch of stats
+        // Initial fetch of stats using the courier's specific tariff
         if (courierId != -1L) {
-            viewModel.fetchTodayStats(courierId)
+            viewModel.fetchTodayStats(courierId, tariff)
         }
 
         cvChangePassword.setOnClickListener {

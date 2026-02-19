@@ -9,5 +9,7 @@ data class LoginResponse(
     val expires: Long,
     @SerializedName("user_role")
     val role: String? = null,
+    @SerializedName("tariff")
+    val tariff: Double? = null,
     val message: String? = null
 )
