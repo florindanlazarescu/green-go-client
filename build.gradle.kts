@@ -1,6 +1,6 @@
 plugins {
-    id("com.android.application") version "8.13.2"
-    kotlin("android") version "1.9.22"
+    id("com.android.application") version "9.0.1"
+    id("org.jetbrains.kotlin.android") version "2.2.10"
 }
 
 import java.util.Properties
@@ -11,9 +11,6 @@ val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
-
-group = "green.go"
-version = "1.0-SNAPSHOT"
 
 android {
     namespace = "green.go"
@@ -62,12 +59,16 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
+}
+
+kotlin {
+    jvmToolchain(17)
 }
 
 dependencies {
@@ -79,10 +80,10 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.0.1")
 
     // Lifecycle & MVVM
-    val lifecycleVersion = "2.6.2"
+    val lifecycleVersion = "2.8.7"
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:$lifecycleVersion")
-    implementation("androidx.fragment:fragment-ktx:1.6.2")
+    implementation("androidx.fragment:fragment-ktx:1.8.5")
 
     // Networking
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
