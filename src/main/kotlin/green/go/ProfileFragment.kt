@@ -5,12 +5,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import green.go.databinding.FragmentProfileBinding
 import green.go.network.DeliveryRepository
 import green.go.network.RetrofitClient
 import green.go.utils.SessionManager
@@ -20,6 +19,9 @@ import java.util.Locale
 
 class ProfileFragment : Fragment() {
 
+    private var _binding: FragmentProfileBinding? = null
+    private val binding get() = _binding!!
+
     private val viewModel: DeliveryViewModel by viewModels {
         DeliveryViewModelFactory(DeliveryRepository(RetrofitClient.instance))
     }
@@ -27,17 +29,14 @@ class ProfileFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         (activity as AppCompatActivity).supportActionBar?.title = "Profile"
+        _binding = FragmentProfileBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
-        val view = inflater.inflate(R.layout.fragment_profile, container, false)
-
-        val tvUserInfo = view.findViewById<TextView>(R.id.tvUserInfo)
-        val tvRole = view.findViewById<TextView>(R.id.tvRole)
-        val tvDeliveriesCount = view.findViewById<TextView>(R.id.tvDeliveriesCount)
-        val tvEarningsAmount = view.findViewById<TextView>(R.id.tvEarningsAmount)
-        val cvChangePassword = view.findViewById<CardView>(R.id.cvChangePassword)
-        val cvLogout = view.findViewById<CardView>(R.id.cvLogout)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         val sessionManager = SessionManager(requireContext())
         val prefs = requireContext().getSharedPreferences(SessionManager.PREF_NAME, android.content.Context.MODE_PRIVATE)
@@ -46,9 +45,9 @@ class ProfileFragment : Fragment() {
         val courierId = prefs.getLong(SessionManager.KEY_ID, -1L)
         val tariff = prefs.getFloat(SessionManager.KEY_TARIFF, 0.0f).toDouble()
 
-        tvUserInfo.text = email
+        binding.tvUserInfo.text = email
         
-        tvRole.text = when(role?.uppercase()) {
+        binding.tvRole.text = when(role?.uppercase()) {
             "ADMIN" -> "Administrator"
             "COURIER" -> "Courier"
             "MERCHANT" -> "Merchant"
@@ -57,8 +56,8 @@ class ProfileFragment : Fragment() {
 
         // Observe stats from ViewModel
         viewModel.todayStats.observe(viewLifecycleOwner) { stats ->
-            tvDeliveriesCount.text = stats.count.toString()
-            tvEarningsAmount.text = String.format(Locale.getDefault(), "%.2f RON", stats.earnings)
+            binding.tvDeliveriesCount.text = stats.count.toString()
+            binding.tvEarningsAmount.text = String.format(Locale.getDefault(), "%.2f RON", stats.earnings)
         }
 
         // Initial fetch of stats using the courier's specific tariff
@@ -66,7 +65,7 @@ class ProfileFragment : Fragment() {
             viewModel.fetchTodayStats(courierId, tariff)
         }
 
-        cvChangePassword.setOnClickListener {
+        binding.cvChangePassword.setOnClickListener {
             parentFragmentManager.beginTransaction()
                 .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left, R.anim.slide_in_left, R.anim.slide_out_right)
                 .replace(android.R.id.content, ChangePasswordFragment())
@@ -74,11 +73,14 @@ class ProfileFragment : Fragment() {
                 .commit()
         }
 
-        cvLogout.setOnClickListener {
+        binding.cvLogout.setOnClickListener {
             showLogoutConfirmation(sessionManager)
         }
+    }
 
-        return view
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     private fun showLogoutConfirmation(sessionManager: SessionManager) {

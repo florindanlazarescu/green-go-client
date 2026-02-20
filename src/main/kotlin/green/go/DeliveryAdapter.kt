@@ -4,9 +4,8 @@ import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import green.go.databinding.ItemDeliveryBinding
 import green.go.model.Delivery
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -26,90 +25,82 @@ class DeliveryAdapter(
         const val MODE_ACTIVE = 2   // Hides status and pickup time (In Progress / Picked Up)
     }
 
-    class DeliveryViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val tvOrderId: TextView = itemView.findViewById(R.id.tvOrderId)
-        val tvAddress: TextView = itemView.findViewById(R.id.tvAddress)
-        val tvStatus: TextView = itemView.findViewById(R.id.tvStatus)
-        val tvPickupAddress: TextView = itemView.findViewById(R.id.tvPickupAddress)
-        val tvItems: TextView = itemView.findViewById(R.id.tvItems)
-        val tvPickUpTime: TextView = itemView.findViewById(R.id.tvPickUpTime)
-        val tvCost: TextView = itemView.findViewById(R.id.tvCost)
-    }
+    inner class DeliveryViewHolder(val binding: ItemDeliveryBinding) : RecyclerView.ViewHolder(binding.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DeliveryViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_delivery, parent, false)
-        return DeliveryViewHolder(view)
+        val binding = ItemDeliveryBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return DeliveryViewHolder(binding)
     }
 
     override fun onBindViewHolder(holder: DeliveryViewHolder, position: Int) {
         val delivery = deliveries[position]
-        val context = holder.itemView.context
+        val binding = holder.binding
 
         // Common Data
-        holder.tvOrderId.text = "Order #${delivery.orderId}"
-        holder.tvAddress.text = delivery.deliveryAddress
-        holder.tvPickupAddress.text = delivery.pickupAddress
-        holder.tvCost.text = "${delivery.cost} RON"
-        holder.tvItems.text = "Items: ${delivery.items}"
-        holder.tvStatus.text = delivery.status
+        binding.tvOrderId.text = "Order #${delivery.orderId}"
+        binding.tvAddress.text = delivery.deliveryAddress
+        binding.tvPickupAddress.text = delivery.pickupAddress
+        binding.tvCost.text = "${delivery.cost} RON"
+        binding.tvItems.text = "Items: ${delivery.items}"
+        binding.tvStatus.text = delivery.status
 
         // Status Styling
         when (delivery.status) {
-            "PENDING" -> holder.tvStatus.setBackgroundResource(R.drawable.bg_status_pending)
-            "IN_PROGRESS", "PICKED_UP" -> holder.tvStatus.setBackgroundResource(R.drawable.bg_status_in_progress)
-            else -> holder.tvStatus.setBackgroundColor(Color.GRAY)
+            "PENDING" -> binding.tvStatus.setBackgroundResource(R.drawable.bg_status_pending)
+            "IN_PROGRESS", "PICKED_UP" -> binding.tvStatus.setBackgroundResource(R.drawable.bg_status_in_progress)
+            else -> binding.tvStatus.setBackgroundColor(Color.GRAY)
         }
 
         when (displayMode) {
             MODE_PENDING -> {
-                holder.tvOrderId.visibility = View.GONE
-                holder.tvAddress.visibility = View.GONE
-                holder.tvStatus.visibility = View.GONE
-                holder.tvItems.visibility = View.GONE
-                holder.tvCost.visibility = View.GONE
+                binding.tvOrderId.visibility = View.GONE
+                binding.tvAddress.visibility = View.GONE
+                binding.tvStatus.visibility = View.GONE
+                binding.tvItems.visibility = View.GONE
+                binding.tvCost.visibility = View.GONE
 
-                holder.tvPickupAddress.visibility = View.VISIBLE
-                holder.tvPickUpTime.visibility = View.VISIBLE
+                binding.tvPickupAddress.visibility = View.VISIBLE
+                binding.tvPickUpTime.visibility = View.VISIBLE
 
                 val pickupDate = parseDate(delivery.pickUpTime)
                 val now = Date()
                 val diffHelper = pickupDate.time - now.time
                 val minutes = TimeUnit.MILLISECONDS.toMinutes(diffHelper)
 
-                holder.tvPickUpTime.text = "Pickup in: $minutes min"
+                binding.tvPickUpTime.text = "Pickup in: $minutes min"
 
                 if (minutes < 5) {
-                    holder.itemView.setBackgroundColor(Color.parseColor("#FFCDD2"))
+                    binding.root.setBackgroundColor(Color.parseColor("#FFCDD2"))
                 } else {
-                    holder.itemView.setBackgroundColor(Color.WHITE)
+                    binding.root.setCardBackgroundColor(Color.WHITE)
                 }
             }
             MODE_ACTIVE -> {
-                holder.tvOrderId.visibility = View.VISIBLE
-                holder.tvAddress.visibility = View.VISIBLE
-                holder.tvStatus.visibility = View.GONE
-                holder.tvItems.visibility = View.VISIBLE
-                holder.tvCost.visibility = View.VISIBLE
-                holder.tvPickupAddress.visibility = View.VISIBLE
-                holder.tvPickUpTime.visibility = View.GONE
+                binding.tvOrderId.visibility = View.VISIBLE
+                binding.tvAddress.visibility = View.VISIBLE
+                binding.tvStatus.visibility = View.GONE
+                binding.tvItems.visibility = View.VISIBLE
+                binding.tvCost.visibility = View.VISIBLE
+                binding.tvPickupAddress.visibility = View.VISIBLE
+                binding.tvPickUpTime.visibility = View.GONE
 
-                holder.itemView.setBackgroundColor(Color.WHITE)
+                binding.root.setCardBackgroundColor(Color.WHITE)
             }
             else -> { // MODE_STANDARD
-                holder.tvOrderId.visibility = View.VISIBLE
-                holder.tvAddress.visibility = View.VISIBLE
-                holder.tvStatus.visibility = View.VISIBLE
-                holder.tvItems.visibility = View.VISIBLE
-                holder.tvCost.visibility = View.VISIBLE
-                holder.tvPickupAddress.visibility = View.VISIBLE
-                holder.tvPickUpTime.visibility = View.VISIBLE
+                binding.tvOrderId.visibility = View.VISIBLE
+                binding.tvAddress.visibility = View.VISIBLE
+                binding.tvStatus.visibility = View.VISIBLE
+                binding.tvItems.visibility = View.VISIBLE
+                binding.tvCost.visibility = View.VISIBLE
+                binding.tvPickupAddress.visibility = View.VISIBLE
+                binding.tvPickUpTime.visibility = View.VISIBLE
 
-                holder.itemView.setBackgroundColor(Color.WHITE)
-                holder.tvPickUpTime.text = formatDate(delivery.pickUpTime)
+                binding.root.setCardBackgroundColor(Color.WHITE)
+                binding.tvPickUpTime.text = formatDate(delivery.pickUpTime)
             }
         }
 
-        holder.itemView.setOnClickListener {
+        binding.root.setOnClickListener {
             onItemClick(delivery)
         }
     }

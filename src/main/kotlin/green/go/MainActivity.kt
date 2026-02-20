@@ -8,7 +8,7 @@ import android.view.MenuItem
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.viewpager2.widget.ViewPager2
-import com.google.android.material.bottomnavigation.BottomNavigationView
+import green.go.databinding.ActivityMainBinding
 import green.go.network.DeliveryRepository
 import green.go.network.RetrofitClient
 import green.go.viewmodel.DeliveryViewModel
@@ -16,8 +16,7 @@ import green.go.viewmodel.DeliveryViewModelFactory
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var viewPager: ViewPager2
-    private lateinit var navView: BottomNavigationView
+    private lateinit var binding: ActivityMainBinding
 
     private val viewModel: DeliveryViewModel by viewModels {
         DeliveryViewModelFactory(DeliveryRepository(RetrofitClient.instance))
@@ -33,46 +32,44 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
-        viewPager = findViewById(R.id.viewPager)
-        navView = findViewById(R.id.nav_view)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         // Setup Adapter
         val adapter = ViewPagerAdapter(this)
-        viewPager.adapter = adapter
+        binding.viewPager.adapter = adapter
 
         // Link BottomNavigationView with ViewPager2
-        navView.setOnItemSelectedListener { item ->
+        binding.navView.setOnItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.navigation_pending -> viewPager.currentItem = 0
-                R.id.navigation_in_progress -> viewPager.currentItem = 1
-                R.id.navigation_picked_up -> viewPager.currentItem = 2
-                R.id.navigation_my_deliveries -> viewPager.currentItem = 3
+                R.id.navigation_pending -> binding.viewPager.currentItem = 0
+                R.id.navigation_in_progress -> binding.viewPager.currentItem = 1
+                R.id.navigation_picked_up -> binding.viewPager.currentItem = 2
+                R.id.navigation_my_deliveries -> binding.viewPager.currentItem = 3
             }
             true
         }
 
         // Update BottomNav when swiping
-        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+        binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
-                val menu = navView.menu
+                val menu = binding.navView.menu
                 when (position) {
                     0 -> {
-                        navView.selectedItemId = R.id.navigation_pending
+                        binding.navView.selectedItemId = R.id.navigation_pending
                         supportActionBar?.title = menu.findItem(R.id.navigation_pending).title
                     }
                     1 -> {
-                        navView.selectedItemId = R.id.navigation_in_progress
+                        binding.navView.selectedItemId = R.id.navigation_in_progress
                         supportActionBar?.title = menu.findItem(R.id.navigation_in_progress).title
                     }
                     2 -> {
-                        navView.selectedItemId = R.id.navigation_picked_up
+                        binding.navView.selectedItemId = R.id.navigation_picked_up
                         supportActionBar?.title = menu.findItem(R.id.navigation_picked_up).title
                     }
                     3 -> {
-                        navView.selectedItemId = R.id.navigation_my_deliveries
+                        binding.navView.selectedItemId = R.id.navigation_my_deliveries
                         supportActionBar?.title = menu.findItem(R.id.navigation_my_deliveries).title
                     }
                 }
@@ -81,7 +78,7 @@ class MainActivity : AppCompatActivity() {
 
         // Observe pending count for badge
         viewModel.pendingCount.observe(this) { count ->
-            val badge = navView.getOrCreateBadge(R.id.navigation_pending)
+            val badge = binding.navView.getOrCreateBadge(R.id.navigation_pending)
             if (count > 0) {
                 badge.isVisible = true
                 badge.number = count

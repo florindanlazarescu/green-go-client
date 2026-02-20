@@ -4,12 +4,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
-import com.google.android.material.textfield.TextInputLayout
+import green.go.databinding.FragmentChangePasswordBinding
 import green.go.model.ChangePasswordRequest
 import green.go.network.RetrofitClient
 import green.go.utils.SessionManager
@@ -20,70 +19,71 @@ import kotlinx.coroutines.withContext
 
 class ChangePasswordFragment : Fragment() {
 
-    private lateinit var tilOldPassword: TextInputLayout
-    private lateinit var tilNewPassword: TextInputLayout
-    private lateinit var tilConfirmPassword: TextInputLayout
+    private var _binding: FragmentChangePasswordBinding? = null
+    private val binding get() = _binding!!
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         (activity as AppCompatActivity).supportActionBar?.title = "Change Password"
+        _binding = FragmentChangePasswordBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
-        val view = inflater.inflate(R.layout.fragment_change_password, container, false)
-
-        tilOldPassword = view.findViewById(R.id.tilOldPassword)
-        tilNewPassword = view.findViewById(R.id.tilNewPassword)
-        tilConfirmPassword = view.findViewById(R.id.tilConfirmPassword)
-        val btnSubmit = view.findViewById<Button>(R.id.btnSubmitChangePassword)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         setupValidation()
 
-        btnSubmit.setOnClickListener {
-            val oldPass = tilOldPassword.editText?.text.toString()
-            val newPass = tilNewPassword.editText?.text.toString()
-            val confirmPass = tilConfirmPassword.editText?.text.toString()
+        binding.btnSubmitChangePassword.setOnClickListener {
+            val oldPass = binding.tilOldPassword.editText?.text.toString()
+            val newPass = binding.tilNewPassword.editText?.text.toString()
+            val confirmPass = binding.tilConfirmPassword.editText?.text.toString()
 
             if (validateInputs(oldPass, newPass, confirmPass)) {
                 performPasswordChange(oldPass, newPass)
             }
         }
+    }
 
-        return view
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     private fun setupValidation() {
-        tilOldPassword.editText?.doAfterTextChanged {
+        binding.tilOldPassword.editText?.doAfterTextChanged {
             if (it.toString().isBlank()) {
-                tilOldPassword.error = "Current password cannot be empty"
+                binding.tilOldPassword.error = "Current password cannot be empty"
             } else {
-                tilOldPassword.error = null
+                binding.tilOldPassword.error = null
             }
         }
 
-        tilNewPassword.editText?.doAfterTextChanged {
+        binding.tilNewPassword.editText?.doAfterTextChanged {
             val newPass = it.toString()
-            val confirmPass = tilConfirmPassword.editText?.text.toString()
+            val confirmPass = binding.tilConfirmPassword.editText?.text.toString()
 
             if (newPass.length < 6) {
-                tilNewPassword.error = "Password must be at least 6 characters"
+                binding.tilNewPassword.error = "Password must be at least 6 characters"
             } else {
-                tilNewPassword.error = null
+                binding.tilNewPassword.error = null
             }
 
             if (confirmPass.isNotEmpty() && newPass != confirmPass) {
-                tilConfirmPassword.error = "Passwords do not match"
+                binding.tilConfirmPassword.error = "Passwords do not match"
             } else {
-                tilConfirmPassword.error = null
+                binding.tilConfirmPassword.error = null
             }
         }
 
-        tilConfirmPassword.editText?.doAfterTextChanged {
-            val newPass = tilNewPassword.editText?.text.toString()
+        binding.tilConfirmPassword.editText?.doAfterTextChanged {
+            val newPass = binding.tilNewPassword.editText?.text.toString()
             if (it.toString() != newPass) {
-                tilConfirmPassword.error = "Passwords do not match"
+                binding.tilConfirmPassword.error = "Passwords do not match"
             } else {
-                tilConfirmPassword.error = null
+                binding.tilConfirmPassword.error = null
             }
         }
     }
@@ -93,7 +93,9 @@ class ChangePasswordFragment : Fragment() {
             Toast.makeText(requireContext(), "Please fill out all fields", Toast.LENGTH_SHORT).show()
             return false
         }
-        return tilOldPassword.error == null && tilNewPassword.error == null && tilConfirmPassword.error == null
+        return binding.tilOldPassword.error == null && 
+               binding.tilNewPassword.error == null && 
+               binding.tilConfirmPassword.error == null
     }
 
     private fun performPasswordChange(oldPass: String, newPass: String) {

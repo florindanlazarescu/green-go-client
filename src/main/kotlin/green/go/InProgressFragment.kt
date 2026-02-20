@@ -6,17 +6,11 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.ProgressBar
-import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import green.go.databinding.FragmentDeliveryListBinding
 import green.go.model.Delivery
 import green.go.model.DeliveryState
 import green.go.network.DeliveryRepository
@@ -27,14 +21,10 @@ import green.go.viewmodel.DeliveryViewModelFactory
 
 class InProgressFragment : Fragment() {
 
+    private var _binding: FragmentDeliveryListBinding? = null
+    private val binding get() = _binding!!
+
     private lateinit var adapter: DeliveryAdapter
-    private lateinit var llEmptyState: LinearLayout
-    private lateinit var tvEmptyTitle: TextView
-    private lateinit var tvEmptyDesc: TextView
-    private lateinit var rvDeliveries: RecyclerView
-    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
-    private lateinit var progressBar: ProgressBar
-    private lateinit var ivEmptyState: ImageView
 
     private val viewModel: DeliveryViewModel by viewModels {
         DeliveryViewModelFactory(DeliveryRepository(RetrofitClient.instance))
@@ -54,27 +44,22 @@ class InProgressFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         (activity as AppCompatActivity).supportActionBar?.title = "In Progress"
+        _binding = FragmentDeliveryListBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
-        val view = inflater.inflate(R.layout.fragment_delivery_list, container, false)
-        llEmptyState = view.findViewById(R.id.llEmptyState)
-        tvEmptyTitle = view.findViewById(R.id.tvEmptyTitle)
-        tvEmptyDesc = view.findViewById(R.id.tvEmptyDesc)
-        rvDeliveries = view.findViewById(R.id.rvDeliveries)
-        swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout)
-        progressBar = view.findViewById(R.id.progressBar)
-        ivEmptyState = view.findViewById(R.id.ivEmptyState)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
-        tvEmptyTitle.setText(R.string.empty_inprogress_title)
-        tvEmptyDesc.setText(R.string.empty_inprogress_desc)
-        ivEmptyState.setImageResource(R.drawable.in_progress)
+        binding.tvEmptyTitle.setText(R.string.empty_inprogress_title)
+        binding.tvEmptyDesc.setText(R.string.empty_inprogress_desc)
+        binding.ivEmptyState.setImageResource(R.drawable.in_progress)
 
         setupRecyclerView()
         setupPullToRefresh()
         observeViewModel()
-
-        return view
     }
 
     override fun onResume() {
@@ -87,51 +72,56 @@ class InProgressFragment : Fragment() {
         handler.removeCallbacks(refreshRunnable)
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
     private fun setupRecyclerView() {
         adapter = DeliveryAdapter(emptyList(), DeliveryAdapter.MODE_ACTIVE) { delivery ->
             handleDeliveryClick(delivery)
         }
-        rvDeliveries.layoutManager = LinearLayoutManager(context)
-        rvDeliveries.adapter = adapter
+        binding.rvDeliveries.layoutManager = LinearLayoutManager(context)
+        binding.rvDeliveries.adapter = adapter
     }
 
     private fun setupPullToRefresh() {
-        swipeRefreshLayout.setOnRefreshListener {
+        binding.swipeRefreshLayout.setOnRefreshListener {
             val id = getCourierId()
             if (id != -1L) viewModel.fetchInProgressDeliveries(id)
         }
-        swipeRefreshLayout.setColorSchemeResources(R.color.colorPrimary)
+        binding.swipeRefreshLayout.setColorSchemeResources(R.color.colorPrimary)
     }
 
     private fun observeViewModel() {
         viewModel.deliveryState.observe(viewLifecycleOwner) { state ->
-            swipeRefreshLayout.isRefreshing = false
+            binding.swipeRefreshLayout.isRefreshing = false
             when (state) {
                 is DeliveryState.Loading -> {
-                    if (!swipeRefreshLayout.isRefreshing && adapter.itemCount == 0) {
-                        progressBar.visibility = View.VISIBLE
-                        llEmptyState.visibility = View.GONE
-                        rvDeliveries.visibility = View.GONE
+                    if (!binding.swipeRefreshLayout.isRefreshing && adapter.itemCount == 0) {
+                        binding.progressBar.visibility = View.VISIBLE
+                        binding.llEmptyState.visibility = View.GONE
+                        binding.rvDeliveries.visibility = View.GONE
                     }
                 }
                 is DeliveryState.Success -> {
-                    progressBar.visibility = View.GONE
-                    llEmptyState.visibility = View.GONE
-                    rvDeliveries.visibility = View.VISIBLE
+                    binding.progressBar.visibility = View.GONE
+                    binding.llEmptyState.visibility = View.GONE
+                    binding.rvDeliveries.visibility = View.VISIBLE
                     adapter.updateData(state.deliveries)
                 }
                 is DeliveryState.Empty -> {
-                    progressBar.visibility = View.GONE
-                    llEmptyState.visibility = View.VISIBLE
-                    rvDeliveries.visibility = View.GONE
+                    binding.progressBar.visibility = View.GONE
+                    binding.llEmptyState.visibility = View.VISIBLE
+                    binding.rvDeliveries.visibility = View.GONE
                     adapter.updateData(emptyList())
                 }
                 is DeliveryState.Error -> {
-                    progressBar.visibility = View.GONE
-                    llEmptyState.visibility = View.VISIBLE
-                    tvEmptyTitle.text = "Error"
-                    tvEmptyDesc.text = state.message
-                    rvDeliveries.visibility = View.GONE
+                    binding.progressBar.visibility = View.GONE
+                    binding.llEmptyState.visibility = View.VISIBLE
+                    binding.tvEmptyTitle.text = "Error"
+                    binding.tvEmptyDesc.text = state.message
+                    binding.rvDeliveries.visibility = View.GONE
                 }
             }
         }
