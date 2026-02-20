@@ -100,25 +100,25 @@ class InProgressFragment : Fragment() {
             when (state) {
                 is DeliveryState.Loading -> {
                     if (!binding.swipeRefreshLayout.isRefreshing && adapter.itemCount == 0) {
-                        binding.progressBar.visibility = View.VISIBLE
+                        startShimmer()
                         binding.llEmptyState.visibility = View.GONE
                         binding.rvDeliveries.visibility = View.GONE
                     }
                 }
                 is DeliveryState.Success -> {
-                    binding.progressBar.visibility = View.GONE
+                    stopShimmer()
                     binding.llEmptyState.visibility = View.GONE
                     binding.rvDeliveries.visibility = View.VISIBLE
                     adapter.updateData(state.deliveries)
                 }
                 is DeliveryState.Empty -> {
-                    binding.progressBar.visibility = View.GONE
+                    stopShimmer()
                     binding.llEmptyState.visibility = View.VISIBLE
                     binding.rvDeliveries.visibility = View.GONE
                     adapter.updateData(emptyList())
                 }
                 is DeliveryState.Error -> {
-                    binding.progressBar.visibility = View.GONE
+                    stopShimmer()
                     showErrorSnackbar(state.message)
                     if (adapter.itemCount == 0) {
                         binding.llEmptyState.visibility = View.VISIBLE
@@ -136,6 +136,16 @@ class InProgressFragment : Fragment() {
                 Snackbar.make(binding.root, "Failed to update order", Snackbar.LENGTH_LONG).show()
             }
         }
+    }
+
+    private fun startShimmer() {
+        binding.shimmerViewContainer.visibility = View.VISIBLE
+        binding.shimmerViewContainer.startShimmer()
+    }
+
+    private fun stopShimmer() {
+        binding.shimmerViewContainer.stopShimmer()
+        binding.shimmerViewContainer.visibility = View.GONE
     }
 
     private fun showErrorSnackbar(message: String) {

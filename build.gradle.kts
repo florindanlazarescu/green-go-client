@@ -74,6 +74,7 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation("com.facebook.shimmer:shimmer:0.5.0")
 
     // Lifecycle & MVVM
     val lifecycleVersion = "2.8.7"
