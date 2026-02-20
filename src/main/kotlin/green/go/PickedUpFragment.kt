@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.snackbar.Snackbar
 import green.go.databinding.FragmentDeliveryListBinding
 import green.go.model.Delivery
 import green.go.model.DeliveryState
@@ -118,13 +119,32 @@ class PickedUpFragment : Fragment() {
                 }
                 is DeliveryState.Error -> {
                     binding.progressBar.visibility = View.GONE
-                    binding.llEmptyState.visibility = View.VISIBLE
-                    binding.tvEmptyTitle.text = "Error"
-                    binding.tvEmptyDesc.text = state.message
-                    binding.rvDeliveries.visibility = View.GONE
+                    showErrorSnackbar(state.message)
+                    if (adapter.itemCount == 0) {
+                        binding.llEmptyState.visibility = View.VISIBLE
+                        binding.tvEmptyTitle.text = "Error"
+                        binding.tvEmptyDesc.text = state.message
+                    }
                 }
             }
         }
+
+        viewModel.statusUpdateResult.observe(viewLifecycleOwner) { success ->
+            if (success) {
+                Snackbar.make(binding.root, "Order updated successfully", Snackbar.LENGTH_SHORT).show()
+            } else {
+                Snackbar.make(binding.root, "Failed to update order", Snackbar.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun showErrorSnackbar(message: String) {
+        Snackbar.make(binding.root, "Error: $message", Snackbar.LENGTH_INDEFINITE)
+            .setAction("RETRY") {
+                val id = getCourierId()
+                if (id != -1L) viewModel.fetchPickedUpDeliveries(id)
+            }
+            .show()
     }
 
     private fun getCourierId(): Long {

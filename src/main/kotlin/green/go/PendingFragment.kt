@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.snackbar.Snackbar
 import green.go.databinding.FragmentDeliveryListBinding
 import green.go.model.Delivery
 import green.go.model.DeliveryState
@@ -115,27 +116,43 @@ class PendingFragment : Fragment() {
                 }
                 is DeliveryState.Empty -> {
                     binding.progressBar.visibility = View.GONE
-                    binding.llEmptyState.visibility = View.VISIBLE
+                    llEmptyStateVisibility(true)
                     binding.rvDeliveries.visibility = View.GONE
                     adapter.updateData(emptyList())
                 }
                 is DeliveryState.Error -> {
                     binding.progressBar.visibility = View.GONE
-                    binding.llEmptyState.visibility = View.VISIBLE
-                    binding.tvEmptyTitle.text = "Connection Error"
-                    binding.tvEmptyDesc.text = state.message
-                    binding.rvDeliveries.visibility = View.GONE
+                    showErrorSnackbar(state.message)
+                    if (adapter.itemCount == 0) {
+                        llEmptyStateVisibility(true)
+                        binding.tvEmptyTitle.text = "Connection Error"
+                        binding.tvEmptyDesc.text = state.message
+                    }
                 }
             }
         }
 
         viewModel.statusUpdateResult.observe(viewLifecycleOwner) { success ->
             if (success) {
-                Toast.makeText(context, "Order updated successfully", Toast.LENGTH_SHORT).show()
+                Snackbar.make(binding.root, "Order updated successfully", Snackbar.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(context, "Failed to update order", Toast.LENGTH_SHORT).show()
+                Snackbar.make(binding.root, "Failed to update order", Snackbar.LENGTH_LONG)
+                    .setAction("RETRY") { /* Poti adauga logica de retry aici daca doresti */ }
+                    .show()
             }
         }
+    }
+
+    private fun llEmptyStateVisibility(visible: Boolean) {
+        binding.llEmptyState.visibility = if (visible) View.VISIBLE else View.GONE
+    }
+
+    private fun showErrorSnackbar(message: String) {
+        Snackbar.make(binding.root, "Error: $message", Snackbar.LENGTH_INDEFINITE)
+            .setAction("RETRY") {
+                viewModel.fetchPendingDeliveries()
+            }
+            .show()
     }
 
     private fun parseDate(dateString: String): Date {
