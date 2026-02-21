@@ -1,125 +1,27 @@
 package green.go
 
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
-import androidx.recyclerview.widget.LinearLayoutManager
-import green.go.databinding.FragmentDeliveryListBinding
-import green.go.model.DeliveryState
-import green.go.network.DeliveryRepository
-import green.go.network.RetrofitClient
-import green.go.utils.SessionManager
-import green.go.viewmodel.DeliveryViewModel
-import green.go.viewmodel.DeliveryViewModelFactory
+import green.go.model.Delivery
 
-class MyDeliveriesFragment : Fragment() {
+class MyDeliveriesFragment : BaseDeliveryFragment() {
 
-    private var _binding: FragmentDeliveryListBinding? = null
-    private val binding get() = _binding!!
+    override fun getTitle() = "History"
+    
+    // În MyDeliveriesFragment am folosit anterior texte directe, aici le-am lăsat momentan pe cele generice 
+    // dar le poți schimba în strings.xml dacă dorești ceva specific pentru History.
+    override fun getEmptyTitleRes() = R.string.empty_pending_title 
+    override fun getEmptyDescRes() = R.string.empty_pending_desc
+    override fun getEmptyImageRes() = R.drawable.ic_empty_state
+    override fun getAdapterMode() = DeliveryAdapter.MODE_STANDARD
 
-    private lateinit var adapter: DeliveryAdapter
-
-    private val viewModel: DeliveryViewModel by viewModels {
-        DeliveryViewModelFactory(DeliveryRepository(RetrofitClient.instance))
-    }
-
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        (activity as AppCompatActivity).supportActionBar?.title = "History"
-        _binding = FragmentDeliveryListBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        binding.tvEmptyTitle.text = "No order history"
-        binding.tvEmptyDesc.text = "Your delivered orders will appear here"
-
-        setupRecyclerView()
-        setupPullToRefresh()
-        observeViewModel()
-
-        fetchData(isManualRefresh = false)
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
-
-    private fun setupRecyclerView() {
-        adapter = DeliveryAdapter(emptyList(), DeliveryAdapter.MODE_STANDARD) { delivery ->
-            val bottomSheet = DeliveryDetailsBottomSheet(delivery)
-            bottomSheet.show(parentFragmentManager, "DeliveryDetailsBottomSheet")
-        }
-        binding.rvDeliveries.layoutManager = LinearLayoutManager(context)
-        binding.rvDeliveries.adapter = adapter
-    }
-
-    private fun setupPullToRefresh() {
-        binding.swipeRefreshLayout.setOnRefreshListener {
-            fetchData(isManualRefresh = true)
-        }
-        binding.swipeRefreshLayout.setColorSchemeResources(R.color.colorPrimary)
-    }
-
-    private fun observeViewModel() {
-        viewModel.deliveryState.observe(viewLifecycleOwner) { state ->
-            binding.swipeRefreshLayout.isRefreshing = false
-            when (state) {
-                is DeliveryState.Loading -> {
-                    if (!binding.swipeRefreshLayout.isRefreshing && adapter.itemCount == 0) {
-                        startShimmer()
-                        binding.llEmptyState.visibility = View.GONE
-                        binding.rvDeliveries.visibility = View.GONE
-                    }
-                }
-                is DeliveryState.Success -> {
-                    stopShimmer()
-                    binding.llEmptyState.visibility = View.GONE
-                    binding.rvDeliveries.visibility = View.VISIBLE
-                    adapter.updateData(state.deliveries)
-                }
-                is DeliveryState.Empty -> {
-                    stopShimmer()
-                    binding.llEmptyState.visibility = View.VISIBLE
-                    binding.rvDeliveries.visibility = View.GONE
-                    adapter.updateData(emptyList())
-                }
-                is DeliveryState.Error -> {
-                    stopShimmer()
-                    if (adapter.itemCount == 0) {
-                        binding.llEmptyState.visibility = View.VISIBLE
-                        binding.tvEmptyTitle.text = "Error"
-                        binding.tvEmptyDesc.text = state.message
-                    }
-                }
-            }
-        }
-    }
-
-    private fun startShimmer() {
-        binding.shimmerViewContainer.visibility = View.VISIBLE
-        binding.shimmerViewContainer.startShimmer()
-    }
-
-    private fun stopShimmer() {
-        binding.shimmerViewContainer.stopShimmer()
-        binding.shimmerViewContainer.visibility = View.GONE
-    }
-
-    private fun fetchData(isManualRefresh: Boolean) {
-        val prefs = requireContext().getSharedPreferences(SessionManager.PREF_NAME, android.content.Context.MODE_PRIVATE)
-        val id = prefs.getLong(SessionManager.KEY_ID, -1L)
+    override fun fetchData(isManualRefresh: Boolean) {
+        val id = getCourierId()
         if (id != -1L) {
             viewModel.fetchHistory(id)
         }
+    }
+
+    override fun onDeliveryClick(delivery: Delivery) {
+        val bottomSheet = DeliveryDetailsBottomSheet(delivery)
+        bottomSheet.show(parentFragmentManager, "DeliveryDetailsBottomSheet")
     }
 }
