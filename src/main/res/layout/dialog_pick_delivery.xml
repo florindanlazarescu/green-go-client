@@ -69,16 +69,46 @@
         app:layout_constraintTop_toBottomOf="@+id/tvDeliveryAddress"
         tools:text="80.0 RON" />
 
+    <LinearLayout
+        android:id="@+id/llQuickActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:orientation="horizontal"
+        android:weightSum="2"
+        app:layout_constraintTop_toBottomOf="@+id/tvCost">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnNavigate"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Navigate"
+            app:icon="@drawable/ic_delivery"
+            app:iconGravity="textStart" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCall"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Call"
+            app:icon="@drawable/ic_profile"
+            app:iconGravity="textStart" />
+    </LinearLayout>
+
     <TextView
         android:id="@+id/tvQuestion"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="16dp"
         android:text="Do you want to accept this delivery?"
         android:textSize="16sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tvCost" />
+        app:layout_constraintTop_toBottomOf="@+id/llQuickActions" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnAccept"

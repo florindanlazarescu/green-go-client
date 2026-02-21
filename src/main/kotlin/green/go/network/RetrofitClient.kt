@@ -1,7 +1,9 @@
 package green.go.network
 
 import android.content.Context
+import android.content.Intent
 import green.go.BuildConfig
+import green.go.LoginActivity
 import green.go.utils.SessionManager
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -12,8 +14,10 @@ object RetrofitClient {
     private const val BASE_URL = BuildConfig.BASE_URL
 
     private var sessionManager: SessionManager? = null
+    private var appContext: Context? = null
 
     fun init(context: Context) {
+        appContext = context.applicationContext
         if (sessionManager == null) {
             sessionManager = SessionManager(context.applicationContext)
         }
@@ -29,16 +33,35 @@ object RetrofitClient {
                 val originalRequest = chain.request()
                 val token = sessionManager?.fetchAuthToken()
 
-                val newRequest = if (!token.isNullOrBlank()) {
-                    originalRequest.newBuilder()
-                        .header("Authorization", "Bearer $token")
-                        .build()
-                } else {
-                    originalRequest
+                val requestBuilder = originalRequest.newBuilder()
+                if (!token.isNullOrBlank()) {
+                    requestBuilder.header("Authorization", "Bearer $token")
                 }
-                chain.proceed(newRequest)
+                
+                val request = requestBuilder.build()
+                val response = chain.proceed(request)
+
+                // Verificăm dacă sesiunea a expirat (Eroare 401)
+                if (response.code == 401) {
+                    handleUnauthorized()
+                }
+
+                response
             }
             .build()
+    }
+
+    private fun handleUnauthorized() {
+        // Ștergem sesiunea locală
+        sessionManager?.clearSession()
+
+        // Trimitem utilizatorul la LoginActivity și închidem restul ecranelor
+        appContext?.let { context ->
+            val intent = Intent(context, LoginActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            context.startActivity(intent)
+        }
     }
 
     val instance: ApiService by lazy {
