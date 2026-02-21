@@ -5,6 +5,8 @@ import android.os.Handler
 import android.os.Looper
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.viewpager2.widget.ViewPager2
@@ -17,6 +19,7 @@ import green.go.viewmodel.DeliveryViewModelFactory
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private var doubleBackToExitPressedOnce = false
 
     private val viewModel: DeliveryViewModel by viewModels {
         DeliveryViewModelFactory(DeliveryRepository(RetrofitClient.instance))
@@ -35,11 +38,43 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Setup Adapter
+        setupBackPressedHandling()
+        setupViewPager()
+        setupBadgeObservation()
+
+        // Set default title
+        supportActionBar?.title = "Pending"
+        
+        // Start background badge check
+        handler.post(badgeRefreshRunnable)
+    }
+
+    private fun setupBackPressedHandling() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (supportFragmentManager.backStackEntryCount > 0) {
+                    supportFragmentManager.popBackStack()
+                    return
+                }
+
+                if (doubleBackToExitPressedOnce) {
+                    isEnabled = false // Disable callback to allow default behavior
+                    onBackPressedDispatcher.onBackPressed()
+                    return
+                }
+
+                doubleBackToExitPressedOnce = true
+                Toast.makeText(this@MainActivity, "Press again to exit", Toast.LENGTH_SHORT).show()
+
+                handler.postDelayed({ doubleBackToExitPressedOnce = false }, 2000)
+            }
+        })
+    }
+
+    private fun setupViewPager() {
         val adapter = ViewPagerAdapter(this)
         binding.viewPager.adapter = adapter
 
-        // Link BottomNavigationView with ViewPager2
         binding.navView.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.navigation_pending -> binding.viewPager.currentItem = 0
@@ -50,33 +85,26 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        // Update BottomNav when swiping
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
                 val menu = binding.navView.menu
                 when (position) {
-                    0 -> {
-                        binding.navView.selectedItemId = R.id.navigation_pending
-                        supportActionBar?.title = menu.findItem(R.id.navigation_pending).title
-                    }
-                    1 -> {
-                        binding.navView.selectedItemId = R.id.navigation_in_progress
-                        supportActionBar?.title = menu.findItem(R.id.navigation_in_progress).title
-                    }
-                    2 -> {
-                        binding.navView.selectedItemId = R.id.navigation_picked_up
-                        supportActionBar?.title = menu.findItem(R.id.navigation_picked_up).title
-                    }
-                    3 -> {
-                        binding.navView.selectedItemId = R.id.navigation_my_deliveries
-                        supportActionBar?.title = menu.findItem(R.id.navigation_my_deliveries).title
-                    }
+                    0 -> updateUIState(R.id.navigation_pending, menu.findItem(R.id.navigation_pending).title.toString())
+                    1 -> updateUIState(R.id.navigation_in_progress, menu.findItem(R.id.navigation_in_progress).title.toString())
+                    2 -> updateUIState(R.id.navigation_picked_up, menu.findItem(R.id.navigation_picked_up).title.toString())
+                    3 -> updateUIState(R.id.navigation_my_deliveries, menu.findItem(R.id.navigation_my_deliveries).title.toString())
                 }
             }
         })
+    }
 
-        // Observe pending count for badge
+    private fun updateUIState(itemId: Int, title: String) {
+        binding.navView.selectedItemId = itemId
+        supportActionBar?.title = title
+    }
+
+    private fun setupBadgeObservation() {
         viewModel.pendingCount.observe(this) { count ->
             val badge = binding.navView.getOrCreateBadge(R.id.navigation_pending)
             if (count > 0) {
@@ -86,12 +114,6 @@ class MainActivity : AppCompatActivity() {
                 badge.isVisible = false
             }
         }
-
-        // Set default title
-        supportActionBar?.title = "Pending"
-        
-        // Start background badge check
-        handler.post(badgeRefreshRunnable)
     }
 
     override fun onDestroy() {
