@@ -3,6 +3,7 @@ package green.go.network
 import green.go.model.DeliveryResponse
 import green.go.model.DeliverySearchRequest
 import green.go.model.StatusUpdateResponse
+import green.go.model.TotalEarningsResponse
 import retrofit2.Response
 
 class DeliveryRepository(private val apiService: ApiService) {
@@ -21,5 +22,9 @@ class DeliveryRepository(private val apiService: ApiService) {
 
     suspend fun getDeliveriesByCourier(courierId: Long): Response<DeliveryResponse> {
         return apiService.getDeliveriesByCourier(courierId)
+    }
+
+    suspend fun getTotalEarnings(courierId: Long, date: String): Response<TotalEarningsResponse> {
+        return apiService.getTotalEarnings(courierId, date)
     }
 }

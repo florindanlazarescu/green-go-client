@@ -2,6 +2,8 @@ package green.go.utils
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Base64
+import org.json.JSONObject
 
 class SessionManager(context: Context) {
     private var prefs: SharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -20,10 +22,26 @@ class SessionManager(context: Context) {
         editor.putString(KEY_TOKEN, token)
         editor.putLong(KEY_ID, id)
         editor.putString(KEY_EMAIL, email)
-        editor.putString(KEY_ROLE, role ?: "USER")
-        // Store tariff as a float (SharedPreferences doesn't support Double)
+        
+        // Dacă rolul lipsește, încercăm să-l extragem din token
+        val finalRole = role ?: extractRoleFromToken(token) ?: "USER"
+        
+        editor.putString(KEY_ROLE, finalRole)
         editor.putFloat(KEY_TARIFF, (tariff ?: 0.0).toFloat())
         editor.apply()
+    }
+
+    fun extractRoleFromToken(token: String): String? {
+        return try {
+            val parts = token.split(".")
+            if (parts.size < 2) return null
+            
+            val payload = String(Base64.decode(parts[1], Base64.DEFAULT))
+            val jsonObject = JSONObject(payload)
+            jsonObject.optString("role", null)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     fun fetchAuthToken(): String? {

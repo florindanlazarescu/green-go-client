@@ -5,6 +5,7 @@ import green.go.model.DeliverySearchRequest
 import green.go.model.LoginRequest
 import green.go.model.LoginResponse
 import green.go.model.StatusUpdateResponse
+import green.go.model.TotalEarningsResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -34,4 +35,10 @@ interface ApiService {
 
     @PUT("api/users/password")
     suspend fun changePassword(@Body request: green.go.model.ChangePasswordRequest): Response<StatusUpdateResponse>
+
+    @GET("api/deliveries/total")
+    suspend fun getTotalEarnings(
+        @Query("courier-id") courierId: Long,
+        @Query("date") date: String
+    ): Response<TotalEarningsResponse>
 }

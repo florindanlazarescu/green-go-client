@@ -43,7 +43,6 @@ class ProfileFragment : Fragment() {
         val email = prefs.getString(SessionManager.KEY_EMAIL, "Unknown User")
         val role = prefs.getString(SessionManager.KEY_ROLE, "USER")
         val courierId = prefs.getLong(SessionManager.KEY_ID, -1L)
-        val tariff = prefs.getFloat(SessionManager.KEY_TARIFF, 0.0f).toDouble()
 
         binding.tvUserInfo.text = email
         
@@ -60,9 +59,9 @@ class ProfileFragment : Fragment() {
             binding.tvEarningsAmount.text = String.format(Locale.getDefault(), "%.2f RON", stats.earnings)
         }
 
-        // Initial fetch of stats using the courier's specific tariff
+        // Initial fetch of stats using the new server-side calculation endpoint
         if (courierId != -1L) {
-            viewModel.fetchTodayStats(courierId, tariff)
+            viewModel.fetchTodayStats(courierId)
         }
 
         binding.cvChangePassword.setOnClickListener {

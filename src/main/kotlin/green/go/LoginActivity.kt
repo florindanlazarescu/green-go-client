@@ -21,9 +21,7 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Install Splash Screen before super.onCreate()
         installSplashScreen()
-
         super.onCreate(savedInstanceState)
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -63,10 +61,7 @@ class LoginActivity : AppCompatActivity() {
             Toast.makeText(this, "Please fill out all fields", Toast.LENGTH_SHORT).show()
             return false
         }
-        if (binding.tilEmail.error != null || binding.tilPassword.error != null) {
-            return false
-        }
-        return true
+        return binding.tilEmail.error == null && binding.tilPassword.error == null
     }
 
     private fun performLogin(email: String, pass: String) {
@@ -80,25 +75,27 @@ class LoginActivity : AppCompatActivity() {
                     if (response.isSuccessful) {
                         val body = response.body()
                         if (body?.token != null) {
+                            // DEBUG MESSAGE: Vedem exact ce a venit de la server
+                            val debugInfo = "Role: ${body.role}, Tariff: ${body.tariff}"
+                            Toast.makeText(this@LoginActivity, debugInfo, Toast.LENGTH_LONG).show()
+
                             val sessionManager = SessionManager(this@LoginActivity)
                             sessionManager.saveAuthToken(body.token, body.id, body.email, body.role, body.tariff)
-                            
-                            Toast.makeText(this@LoginActivity, "Login Successful!", Toast.LENGTH_SHORT).show()
                             
                             val intent = Intent(this@LoginActivity, MainActivity::class.java)
                             startActivity(intent)
                             finish()
                         } else {
-                            Toast.makeText(this@LoginActivity, "Login Failed: ${body?.message}", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this@LoginActivity, "Login Failed: No Token", Toast.LENGTH_LONG).show()
                         }
                     } else {
-                        Toast.makeText(this@LoginActivity, "Login Failed", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@LoginActivity, "Server error: ${response.code()}", Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     binding.btnLogin.isEnabled = true
-                    Toast.makeText(this@LoginActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@LoginActivity, "Connection Error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }

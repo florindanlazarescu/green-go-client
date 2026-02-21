@@ -28,7 +28,6 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
     private val _todayStats = MutableLiveData<DailyStats>()
     val todayStats: LiveData<DailyStats> = _todayStats
 
-    // Specific LiveData for the badge count
     private val _pendingCount = MutableLiveData<Int>()
     val pendingCount: LiveData<Int> = _pendingCount
 
@@ -39,7 +38,7 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
                 val response = repository.getPendingDeliveries()
                 if (response.isSuccessful) {
                     val deliveries = response.body()?.deliveries ?: emptyList()
-                    _pendingCount.value = deliveries.size // Update badge count
+                    _pendingCount.value = deliveries.size
                     if (deliveries.isEmpty()) {
                         _deliveryState.value = DeliveryState.Empty
                     } else {
@@ -54,7 +53,6 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
         }
     }
 
-    // Silent check for the badge only (no UI state change)
     fun silentFetchPendingCount() {
         viewModelScope.launch {
             try {
@@ -62,7 +60,7 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
                 if (response.isSuccessful) {
                     _pendingCount.value = response.body()?.deliveries?.size ?: 0
                 }
-            } catch (e: Exception) { /* Ignore background errors */ }
+            } catch (e: Exception) { }
         }
     }
 
@@ -94,22 +92,18 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
         fetchByStatus(courierId, listOf("DELIVERED"))
     }
 
-    fun fetchTodayStats(courierId: Long, tariff: Double) {
+    fun fetchTodayStats(courierId: Long) {
         viewModelScope.launch {
             try {
-                val response = repository.getDeliveriesByCourier(courierId)
+                val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                val dateParam = "$today 00:00:00"
+                
+                val response = repository.getTotalEarnings(courierId, dateParam)
                 if (response.isSuccessful) {
-                    val allDeliveries = response.body()?.deliveries ?: emptyList()
-                    val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                    
-                    val todayDeliveries = allDeliveries.filter { 
-                        it.status == "DELIVERED" && it.deliveredTime?.startsWith(today) == true
+                    val body = response.body()
+                    if (body != null) {
+                        _todayStats.value = DailyStats(body.count, body.total)
                     }
-                    
-                    val count = todayDeliveries.size
-                    val earnings = count * tariff
-                    
-                    _todayStats.value = DailyStats(count, earnings)
                 }
             } catch (e: Exception) { }
         }
