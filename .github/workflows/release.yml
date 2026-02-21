@@ -54,6 +54,6 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_JSON }}
           packageName: green.go
-          releaseFiles: app/build/outputs/bundle/release/app-release.aab
+          releaseFiles: build/outputs/bundle/release/*.aab
           track: internal
-          userFraction: 0.5
+          status: completed
