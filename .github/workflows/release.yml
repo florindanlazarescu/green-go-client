@@ -17,6 +17,14 @@ on:
       versionCode:
         description: "The internal version code (e.g., 1)"
         required: true
+      status:
+        description: "Release status (use 'draft' if your app is still in Draft mode in Play Console)"
+        required: true
+        default: "completed"
+        type: choice
+        options:
+          - completed
+          - draft
 
 jobs:
   build-and-release:
@@ -67,6 +75,6 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_JSON }}
           packageName: ${{ github.event.inputs.environment == 'production' && 'green.go' || 'green.go.staging' }}
-          releaseFiles: build/outputs/bundle/${{ github.event.inputs.environment }}/*.aab
+          releaseFiles: build/outputs/bundle/${{ github.event.inputs.environment == 'release' && 'release' || (github.event.inputs.environment == 'production' && 'release' || 'staging') }}/*.aab
           track: internal
-          status: completed
+          status: ${{ github.event.inputs.status }}
