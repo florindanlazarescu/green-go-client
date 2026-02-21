@@ -4,14 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       versionName:
-        description: '''The user-visible version name (e.g., 1.0.0)'''
+        description: "The user-visible version name (e.g., 1.0.0)"
         required: true
       versionCode:
-        description: '''The internal version code (e.g., 1)'''
+        description: "The internal version code (e.g., 1)"
         required: true
-  push:
-    branches:
-      - main
 
 jobs:
   build-and-release:
@@ -23,16 +20,19 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
-          distribution: '''temurin'''
-          java-version: '''17'''
+          distribution: "temurin"
+          java-version: "17"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
 
       - name: Set Version Name and Code
         run: |
-          sed -i "s/versionName = \".*\"/versionName = \"${{ github.event.inputs.versionName || '1.0.0' }}\"/" build.gradle.kts
-          sed -i "s/versionCode = .*/versionCode = ${{ github.event.inputs.versionCode || 1 }}/" build.gradle.kts
+          sed -i "s/versionName = \".*\"/versionName = \"${{ github.event.inputs.versionName }}\"/" build.gradle.kts
+          sed -i "s/versionCode = .*/versionCode = ${{ github.event.inputs.versionCode }}/" build.gradle.kts
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
 
       - name: Decode Keystore
         id: decode_keystore
@@ -54,6 +54,6 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_JSON }}
           packageName: green.go
-          releaseFiles: build/outputs/bundle/release/app-release.aab
+          releaseFiles: app/build/outputs/bundle/release/app-release.aab
           track: internal
           userFraction: 0.5
