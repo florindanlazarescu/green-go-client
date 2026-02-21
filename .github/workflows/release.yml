@@ -1,0 +1,59 @@
+name: Release to Google Play
+
+on:
+  workflow_dispatch:
+    inputs:
+      versionName:
+        description: '''The user-visible version name (e.g., 1.0.0)'''
+        required: true
+      versionCode:
+        description: '''The internal version code (e.g., 1)'''
+        required: true
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: '''temurin'''
+          java-version: '''17'''
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Set Version Name and Code
+        run: |
+          sed -i "s/versionName = \".*\"/versionName = \"${{ github.event.inputs.versionName || '1.0.0' }}\"/" build.gradle.kts
+          sed -i "s/versionCode = .*/versionCode = ${{ github.event.inputs.versionCode || 1 }}/" build.gradle.kts
+
+      - name: Decode Keystore
+        id: decode_keystore
+        uses: timheuer/base64-to-file@v1
+        with:
+          fileName: keystore.jks
+          encodedString: ${{ secrets.KEYSTORE_BASE64 }}
+
+      - name: Build AAB
+        run: ./gradlew bundleRelease
+        env:
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          KEYSTORE_PATH: ${{ steps.decode_keystore.outputs.filePath }}
+
+      - name: Upload to Play Store
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_JSON }}
+          packageName: green.go
+          releaseFiles: build/outputs/bundle/release/app-release.aab
+          track: internal
+          userFraction: 0.5

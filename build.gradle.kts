@@ -1,5 +1,5 @@
 plugins {
-    id("com.android.application") version "8.7.3"
+    id("com.android.application") version "8.13.2"
     id("org.jetbrains.kotlin.android") version "2.0.21"
 }
 
@@ -34,12 +34,12 @@ android {
 
     signingConfigs {
         create("release") {
-            val storeFileVal = keystoreProperties.getProperty("storeFile")
-            if (storeFileVal != null) {
-                storeFile = file(storeFileVal)
-                storePassword = keystoreProperties.getProperty("storePassword")
-                keyAlias = keystoreProperties.getProperty("keyAlias")
-                keyPassword = keystoreProperties.getProperty("keyPassword")
+            val storeFilePath = System.getenv("KEYSTORE_PATH") ?: keystoreProperties.getProperty("storeFile")
+            if (storeFilePath != null) {
+                storeFile = file(storeFilePath)
+                storePassword = System.getenv("SIGNING_STORE_PASSWORD") ?: keystoreProperties.getProperty("storePassword")
+                keyAlias = System.getenv("SIGNING_KEY_ALIAS") ?: keystoreProperties.getProperty("keyAlias")
+                keyPassword = System.getenv("SIGNING_KEY_PASSWORD") ?: keystoreProperties.getProperty("keyPassword")
             }
         }
     }
