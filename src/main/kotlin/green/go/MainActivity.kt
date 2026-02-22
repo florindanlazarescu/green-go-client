@@ -1,5 +1,6 @@
 package green.go
 
+import android.content.Context
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -13,10 +14,18 @@ import androidx.viewpager2.widget.ViewPager2
 import green.go.databinding.ActivityMainBinding
 import green.go.network.DeliveryRepository
 import green.go.network.RetrofitClient
+import green.go.utils.SessionManager
 import green.go.viewmodel.DeliveryViewModel
 import green.go.viewmodel.DeliveryViewModelFactory
 
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        // --- CONFIGURARE REFRESH ---
+        // Schimbă această valoare (în milisecunde) pentru a modifica viteza de refresh.
+        // 15000ms = 15 secunde
+        private const val REFRESH_INTERVAL_MS = 15000L
+    }
 
     private lateinit var binding: ActivityMainBinding
     private var doubleBackToExitPressedOnce = false
@@ -26,10 +35,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val handler = Handler(Looper.getMainLooper())
-    private val badgeRefreshRunnable = object : Runnable {
+    
+    // Acest Runnable gestionează refresh-ul centralizat
+    private val refreshRunnable = object : Runnable {
         override fun run() {
+            val courierId = getCourierId()
+            val currentTab = binding.viewPager.currentItem
+
+            // Actualizăm badge-ul de Pending
             viewModel.silentFetchPendingCount()
-            handler.postDelayed(this, 15000)
+
+            // Actualizăm datele de pe ecranul curent
+            if (courierId != -1L) {
+                when (currentTab) {
+                    0 -> viewModel.fetchPendingDeliveries()
+                    1 -> viewModel.fetchInProgressDeliveries(courierId)
+                    2 -> viewModel.fetchPickedUpDeliveries(courierId)
+                    3 -> viewModel.fetchHistory(courierId)
+                }
+            }
+
+            handler.postDelayed(this, REFRESH_INTERVAL_MS)
         }
     }
 
@@ -43,23 +69,21 @@ class MainActivity : AppCompatActivity() {
         setupBadgeObservation()
 
         supportActionBar?.title = "Pending"
-        handler.post(badgeRefreshRunnable)
+        handler.post(refreshRunnable)
         
-        // Listener pentru schimbarile de ecrane (Profile/ChangePassword)
         supportFragmentManager.addOnBackStackChangedListener {
             val hasBackStack = supportFragmentManager.backStackEntryCount > 0
-            
-            // 1. Activam/Dezactivam gestul de slide (Swipe)
             binding.viewPager.isUserInputEnabled = !hasBackStack
-            
-            // 2. Afisam sageata de back
             supportActionBar?.setDisplayHomeAsUpEnabled(hasBackStack)
-            
             if (!hasBackStack) {
-                // Revenim la titlul tab-ului curent cand iesim din Profil
                 updateTitleFromPager(binding.viewPager.currentItem)
             }
         }
+    }
+
+    private fun getCourierId(): Long {
+        val prefs = getSharedPreferences(SessionManager.PREF_NAME, Context.MODE_PRIVATE)
+        return prefs.getLong(SessionManager.KEY_ID, -1L)
     }
 
     private fun setupBackPressedHandling() {
@@ -140,7 +164,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        handler.removeCallbacks(badgeRefreshRunnable)
+        handler.removeCallbacks(refreshRunnable)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
