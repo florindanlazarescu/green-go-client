@@ -1,4 +1,4 @@
-                                                       ename: Release to Google Play
+name: Release to Google Play
 
 on:
   workflow_dispatch:
