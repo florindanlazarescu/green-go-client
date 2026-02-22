@@ -22,8 +22,6 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         // --- CONFIGURARE REFRESH ---
-        // Schimbă această valoare (în milisecunde) pentru a modifica viteza de refresh.
-        // 15000ms = 15 secunde
         private const val REFRESH_INTERVAL_MS = 15000L
     }
 
@@ -36,22 +34,18 @@ class MainActivity : AppCompatActivity() {
 
     private val handler = Handler(Looper.getMainLooper())
     
-    // Acest Runnable gestionează refresh-ul centralizat
     private val refreshRunnable = object : Runnable {
         override fun run() {
             val courierId = getCourierId()
             val currentTab = binding.viewPager.currentItem
 
-            // Actualizăm badge-ul de Pending
-            viewModel.silentFetchPendingCount()
-
-            // Actualizăm datele de pe ecranul curent
             if (courierId != -1L) {
-                when (currentTab) {
-                    0 -> viewModel.fetchPendingDeliveries()
-                    1 -> viewModel.fetchInProgressDeliveries(courierId)
-                    2 -> viewModel.fetchPickedUpDeliveries(courierId)
-                    3 -> viewModel.fetchHistory(courierId)
+                // Dacă suntem pe ecranul Pending, un singur apel actualizează tot (listă + badge)
+                if (currentTab == 0) {
+                    viewModel.fetchPendingDeliveries()
+                } else {
+                    // Dacă suntem pe alt ecran, actualizăm doar badge-ul (silent)
+                    viewModel.silentFetchPendingCount()
                 }
             }
 
@@ -112,11 +106,24 @@ class MainActivity : AppCompatActivity() {
         binding.viewPager.adapter = adapter
 
         binding.navView.setOnItemSelectedListener { item ->
+            val id = getCourierId()
             when (item.itemId) {
-                R.id.navigation_pending -> binding.viewPager.currentItem = 0
-                R.id.navigation_in_progress -> binding.viewPager.currentItem = 1
-                R.id.navigation_picked_up -> binding.viewPager.currentItem = 2
-                R.id.navigation_my_deliveries -> binding.viewPager.currentItem = 3
+                R.id.navigation_pending -> {
+                    binding.viewPager.currentItem = 0
+                    viewModel.fetchPendingDeliveries() // Un singur apel
+                }
+                R.id.navigation_in_progress -> {
+                    binding.viewPager.currentItem = 1
+                    if (id != -1L) viewModel.fetchInProgressDeliveries(id)
+                }
+                R.id.navigation_picked_up -> {
+                    binding.viewPager.currentItem = 2
+                    if (id != -1L) viewModel.fetchPickedUpDeliveries(id)
+                }
+                R.id.navigation_my_deliveries -> {
+                    binding.viewPager.currentItem = 3
+                    if (id != -1L) viewModel.fetchHistory(id)
+                }
             }
             true
         }

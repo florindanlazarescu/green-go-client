@@ -19,7 +19,6 @@ data class DailyStats(val count: Int, val earnings: Double)
 
 class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel() {
 
-    // Stari separate pentru fiecare ecran
     private val _pendingState = MutableLiveData<DeliveryState>()
     val pendingState: LiveData<DeliveryState> = _pendingState
 
@@ -41,8 +40,9 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
     private val _pendingCount = MutableLiveData<Int>()
     val pendingCount: LiveData<Int> = _pendingCount
 
-    fun fetchPendingDeliveries() {
-        _pendingState.value = DeliveryState.Loading
+    fun fetchPendingDeliveries(isSilent: Boolean = false) {
+        if (!isSilent) _pendingState.value = DeliveryState.Loading
+        
         viewModelScope.launch {
             try {
                 val response = repository.getPendingDeliveries()
@@ -51,32 +51,31 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
                     _pendingCount.value = deliveries.size
                     _pendingState.value = if (deliveries.isEmpty()) DeliveryState.Empty else DeliveryState.Success(deliveries)
                 } else {
-                    _pendingState.value = DeliveryState.Error("Error: ${response.code()}")
+                    if (!isSilent) _pendingState.value = DeliveryState.Error("Error: ${response.code()}")
                 }
             } catch (e: Exception) {
-                _pendingState.value = DeliveryState.Error(e.message ?: "Unknown error")
+                if (!isSilent) _pendingState.value = DeliveryState.Error(e.message ?: "Unknown error")
             }
         }
     }
 
     fun silentFetchPendingCount() {
-        viewModelScope.launch {
-            try {
-                val response = repository.getPendingDeliveries()
-                if (response.isSuccessful) {
-                    _pendingCount.value = response.body()?.deliveries?.size ?: 0
-                }
-            } catch (e: Exception) { }
-        }
+        fetchPendingDeliveries(isSilent = true)
     }
 
-    fun updateDeliveryStatus(delivery: Delivery, status: String, courierId: Long) {
+    fun updateDeliveryStatus(delivery: Delivery, newStatus: String, courierId: Long) {
         viewModelScope.launch {
             try {
-                val response = repository.updateDeliveryStatus(delivery.orderId, status, courierId)
+                val response = repository.updateDeliveryStatus(delivery.orderId, newStatus, courierId)
                 if (response.isSuccessful) {
                     _statusUpdateResult.value = true
-                    fetchPendingDeliveries()
+                    
+                    // După un update reușit, facem refresh la TOATE listele relevante pentru a asigura sincronizarea
+                    fetchPendingDeliveries(isSilent = true)
+                    fetchInProgressDeliveries(courierId)
+                    fetchPickedUpDeliveries(courierId)
+                    fetchHistory(courierId)
+                    fetchTodayStats(courierId)
                 } else {
                     _statusUpdateResult.value = false
                 }
