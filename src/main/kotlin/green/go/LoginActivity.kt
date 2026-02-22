@@ -75,10 +75,6 @@ class LoginActivity : AppCompatActivity() {
                     if (response.isSuccessful) {
                         val body = response.body()
                         if (body?.token != null) {
-                            // DEBUG MESSAGE: Vedem exact ce a venit de la server
-                            val debugInfo = "Role: ${body.role}, Tariff: ${body.tariff}"
-                            Toast.makeText(this@LoginActivity, debugInfo, Toast.LENGTH_LONG).show()
-
                             val sessionManager = SessionManager(this@LoginActivity)
                             sessionManager.saveAuthToken(body.token, body.id, body.email, body.role, body.tariff)
                             
