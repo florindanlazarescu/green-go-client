@@ -29,7 +29,7 @@ class MainActivity : AppCompatActivity() {
     private val badgeRefreshRunnable = object : Runnable {
         override fun run() {
             viewModel.silentFetchPendingCount()
-            handler.postDelayed(this, 15000) // Check every 15 seconds
+            handler.postDelayed(this, 15000)
         }
     }
 
@@ -42,11 +42,18 @@ class MainActivity : AppCompatActivity() {
         setupViewPager()
         setupBadgeObservation()
 
-        // Set default title
         supportActionBar?.title = "Pending"
-        
-        // Start background badge check
         handler.post(badgeRefreshRunnable)
+        
+        // Listen for fragment changes to show/hide back button
+        supportFragmentManager.addOnBackStackChangedListener {
+            val hasBackStack = supportFragmentManager.backStackEntryCount > 0
+            supportActionBar?.setDisplayHomeAsUpEnabled(hasBackStack)
+            if (!hasBackStack) {
+                // Revert title to current tab when coming back from Profile
+                updateTitleFromPager(binding.viewPager.currentItem)
+            }
+        }
     }
 
     private fun setupBackPressedHandling() {
@@ -58,14 +65,13 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 if (doubleBackToExitPressedOnce) {
-                    isEnabled = false // Disable callback to allow default behavior
+                    isEnabled = false
                     onBackPressedDispatcher.onBackPressed()
                     return
                 }
 
                 doubleBackToExitPressedOnce = true
                 Toast.makeText(this@MainActivity, "Press again to exit", Toast.LENGTH_SHORT).show()
-
                 handler.postDelayed({ doubleBackToExitPressedOnce = false }, 2000)
             }
         })
@@ -88,20 +94,22 @@ class MainActivity : AppCompatActivity() {
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
-                val menu = binding.navView.menu
-                when (position) {
-                    0 -> updateUIState(R.id.navigation_pending, menu.findItem(R.id.navigation_pending).title.toString())
-                    1 -> updateUIState(R.id.navigation_in_progress, menu.findItem(R.id.navigation_in_progress).title.toString())
-                    2 -> updateUIState(R.id.navigation_picked_up, menu.findItem(R.id.navigation_picked_up).title.toString())
-                    3 -> updateUIState(R.id.navigation_my_deliveries, menu.findItem(R.id.navigation_my_deliveries).title.toString())
-                }
+                updateTitleFromPager(position)
             }
         })
     }
 
-    private fun updateUIState(itemId: Int, title: String) {
+    private fun updateTitleFromPager(position: Int) {
+        val menu = binding.navView.menu
+        val itemId = when (position) {
+            0 -> R.id.navigation_pending
+            1 -> R.id.navigation_in_progress
+            2 -> R.id.navigation_picked_up
+            3 -> R.id.navigation_my_deliveries
+            else -> R.id.navigation_pending
+        }
         binding.navView.selectedItemId = itemId
-        supportActionBar?.title = title
+        supportActionBar?.title = menu.findItem(itemId).title
     }
 
     private fun setupBadgeObservation() {
@@ -114,6 +122,14 @@ class MainActivity : AppCompatActivity() {
                 badge.isVisible = false
             }
         }
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        if (supportFragmentManager.backStackEntryCount > 0) {
+            supportFragmentManager.popBackStack()
+            return true
+        }
+        return super.onSupportNavigateUp()
     }
 
     override fun onDestroy() {
@@ -134,6 +150,10 @@ class MainActivity : AppCompatActivity() {
                     .replace(android.R.id.content, ProfileFragment())
                     .addToBackStack(null)
                     .commit()
+                true
+            }
+            android.R.id.home -> {
+                onSupportNavigateUp()
                 true
             }
             else -> super.onOptionsItemSelected(item)
