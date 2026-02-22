@@ -44,6 +44,20 @@ class ProfileFragment : Fragment() {
         val role = prefs.getString(SessionManager.KEY_ROLE, "USER")
         val courierId = prefs.getLong(SessionManager.KEY_ID, -1L)
 
+        // Set version info
+        try {
+            val pInfo = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
+            val version = pInfo.versionName
+            val code = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                pInfo.longVersionCode
+            } else {
+                pInfo.versionCode.toLong()
+            }
+            binding.tvAppVersion.text = "Version $version ($code)"
+        } catch (e: Exception) {
+            binding.tvAppVersion.visibility = View.GONE
+        }
+
         binding.tvUserInfo.text = email
         
         binding.tvRole.text = when(role?.uppercase()) {

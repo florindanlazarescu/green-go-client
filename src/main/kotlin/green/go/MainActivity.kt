@@ -45,12 +45,18 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.title = "Pending"
         handler.post(badgeRefreshRunnable)
         
-        // Listen for fragment changes to show/hide back button
+        // Listener pentru schimbarile de ecrane (Profile/ChangePassword)
         supportFragmentManager.addOnBackStackChangedListener {
             val hasBackStack = supportFragmentManager.backStackEntryCount > 0
+            
+            // 1. Activam/Dezactivam gestul de slide (Swipe)
+            binding.viewPager.isUserInputEnabled = !hasBackStack
+            
+            // 2. Afisam sageata de back
             supportActionBar?.setDisplayHomeAsUpEnabled(hasBackStack)
+            
             if (!hasBackStack) {
-                // Revert title to current tab when coming back from Profile
+                // Revenim la titlul tab-ului curent cand iesim din Profil
                 updateTitleFromPager(binding.viewPager.currentItem)
             }
         }
@@ -145,6 +151,7 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_profile -> {
+                supportActionBar?.title = "Profile"
                 supportFragmentManager.beginTransaction()
                     .setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left, R.anim.slide_in_left, R.anim.slide_out_right)
                     .replace(android.R.id.content, ProfileFragment())
