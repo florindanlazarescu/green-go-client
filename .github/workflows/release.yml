@@ -1,0 +1,80 @@
+name: Release to Google Play
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - production
+      versionName:
+        description: "The user-visible version name (e.g., 1.0.0)"
+        required: true
+      versionCode:
+        description: "The internal version code (e.g., 1)"
+        required: true
+      status:
+        description: "Release status (use 'draft' if your app is still in Draft mode in Play Console)"
+        required: true
+        default: "completed"
+        type: choice
+        options:
+          - completed
+          - draft
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Set Version Name and Code
+        run: |
+          sed -i "s/versionCode = .*/versionCode = ${{ github.event.inputs.versionCode }}/" build.gradle.kts
+          sed -i "s/versionName = \".*\"/versionName = \"${{ github.event.inputs.versionName }}\"/" build.gradle.kts
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Decode Keystore
+        id: decode_keystore
+        uses: timheuer/base64-to-file@v1
+        with:
+          fileName: keystore.jks
+          encodedString: ${{ secrets.KEYSTORE_BASE64 }}
+
+      - name: Build AAB
+        run: |
+          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
+            ./gradlew bundleRelease
+          else
+            ./gradlew bundleStaging
+          fi
+        env:
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          KEYSTORE_PATH: ${{ steps.decode_keystore.outputs.filePath }}
+
+      - name: Upload to Play Store
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_JSON }}
+          packageName: ${{ github.event.inputs.environment == 'production' && 'green.go' || 'green.go.staging' }}
+          releaseFiles: build/outputs/bundle/${{ github.event.inputs.environment == 'release' && 'release' || (github.event.inputs.environment == 'production' && 'release' || 'staging') }}/*.aab
+          track: internal
+          status: ${{ github.event.inputs.status }}
