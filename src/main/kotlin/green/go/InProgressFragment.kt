@@ -10,6 +10,9 @@ class InProgressFragment : BaseDeliveryFragment() {
     override fun getEmptyImageRes() = R.drawable.in_progress
     override fun getAdapterMode() = DeliveryAdapter.MODE_ACTIVE
     override fun isAutoRefreshEnabled() = true
+    
+    // Canal date In Progress
+    override fun getStateLiveData() = viewModel.inProgressState
 
     override fun fetchData(isManualRefresh: Boolean) {
         val courierId = getCourierId()

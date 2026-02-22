@@ -9,7 +9,9 @@ class PendingFragment : BaseDeliveryFragment() {
     override fun getEmptyDescRes() = R.string.empty_pending_desc
     override fun getEmptyImageRes() = R.drawable.pending
     override fun getAdapterMode() = DeliveryAdapter.MODE_PENDING
-    override fun isAutoRefreshEnabled() = true
+    
+    // Indica canalul de date pentru Pending
+    override fun getStateLiveData() = viewModel.pendingState
 
     override fun fetchData(isManualRefresh: Boolean) {
         viewModel.fetchPendingDeliveries()

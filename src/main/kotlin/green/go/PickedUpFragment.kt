@@ -10,6 +10,9 @@ class PickedUpFragment : BaseDeliveryFragment() {
     override fun getEmptyImageRes() = R.drawable.picked_up
     override fun getAdapterMode() = DeliveryAdapter.MODE_ACTIVE
     override fun isAutoRefreshEnabled() = true
+    
+    // Canal date Picked Up
+    override fun getStateLiveData() = viewModel.pickedUpState
 
     override fun fetchData(isManualRefresh: Boolean) {
         val courierId = getCourierId()

@@ -19,8 +19,18 @@ data class DailyStats(val count: Int, val earnings: Double)
 
 class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel() {
 
-    private val _deliveryState = MutableLiveData<DeliveryState>()
-    val deliveryState: LiveData<DeliveryState> = _deliveryState
+    // Stari separate pentru fiecare ecran
+    private val _pendingState = MutableLiveData<DeliveryState>()
+    val pendingState: LiveData<DeliveryState> = _pendingState
+
+    private val _inProgressState = MutableLiveData<DeliveryState>()
+    val inProgressState: LiveData<DeliveryState> = _inProgressState
+
+    private val _pickedUpState = MutableLiveData<DeliveryState>()
+    val pickedUpState: LiveData<DeliveryState> = _pickedUpState
+
+    private val _historyState = MutableLiveData<DeliveryState>()
+    val historyState: LiveData<DeliveryState> = _historyState
 
     private val _statusUpdateResult = MutableLiveData<Boolean>()
     val statusUpdateResult: LiveData<Boolean> = _statusUpdateResult
@@ -32,23 +42,19 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
     val pendingCount: LiveData<Int> = _pendingCount
 
     fun fetchPendingDeliveries() {
-        _deliveryState.value = DeliveryState.Loading
+        _pendingState.value = DeliveryState.Loading
         viewModelScope.launch {
             try {
                 val response = repository.getPendingDeliveries()
                 if (response.isSuccessful) {
                     val deliveries = response.body()?.deliveries ?: emptyList()
                     _pendingCount.value = deliveries.size
-                    if (deliveries.isEmpty()) {
-                        _deliveryState.value = DeliveryState.Empty
-                    } else {
-                        _deliveryState.value = DeliveryState.Success(deliveries)
-                    }
+                    _pendingState.value = if (deliveries.isEmpty()) DeliveryState.Empty else DeliveryState.Success(deliveries)
                 } else {
-                    _deliveryState.value = DeliveryState.Error("Error: ${response.code()}")
+                    _pendingState.value = DeliveryState.Error("Error: ${response.code()}")
                 }
             } catch (e: Exception) {
-                _deliveryState.value = DeliveryState.Error(e.message ?: "Unknown error")
+                _pendingState.value = DeliveryState.Error(e.message ?: "Unknown error")
             }
         }
     }
@@ -81,15 +87,15 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
     }
 
     fun fetchInProgressDeliveries(courierId: Long) {
-        fetchByStatus(courierId, listOf("IN_PROGRESS"))
+        fetchByStatus(courierId, listOf("IN_PROGRESS"), _inProgressState)
     }
 
     fun fetchPickedUpDeliveries(courierId: Long) {
-        fetchByStatus(courierId, listOf("PICKED_UP"))
+        fetchByStatus(courierId, listOf("PICKED_UP"), _pickedUpState)
     }
 
     fun fetchHistory(courierId: Long) {
-        fetchByStatus(courierId, listOf("DELIVERED"))
+        fetchByStatus(courierId, listOf("DELIVERED"), _historyState)
     }
 
     fun fetchTodayStats(courierId: Long) {
@@ -97,7 +103,6 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
             try {
                 val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
                 val dateParam = "$today 00:00:00"
-                
                 val response = repository.getTotalEarnings(courierId, dateParam)
                 if (response.isSuccessful) {
                     val body = response.body()
@@ -109,8 +114,8 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
         }
     }
 
-    private fun fetchByStatus(courierId: Long, statuses: List<String>) {
-        _deliveryState.value = DeliveryState.Loading
+    private fun fetchByStatus(courierId: Long, statuses: List<String>, stateLiveData: MutableLiveData<DeliveryState>) {
+        stateLiveData.value = DeliveryState.Loading
         viewModelScope.launch {
             try {
                 val request = DeliverySearchRequest(
@@ -120,16 +125,12 @@ class DeliveryViewModel(private val repository: DeliveryRepository) : ViewModel(
                 val response = repository.searchDeliveries(request)
                 if (response.isSuccessful) {
                     val deliveries = response.body()?.deliveries ?: emptyList()
-                    if (deliveries.isEmpty()) {
-                        _deliveryState.value = DeliveryState.Empty
-                    } else {
-                        _deliveryState.value = DeliveryState.Success(deliveries)
-                    }
+                    stateLiveData.value = if (deliveries.isEmpty()) DeliveryState.Empty else DeliveryState.Success(deliveries)
                 } else {
-                    _deliveryState.value = DeliveryState.Error("Error: ${response.code()}")
+                    stateLiveData.value = DeliveryState.Error("Error: ${response.code()}")
                 }
             } catch (e: Exception) {
-                _deliveryState.value = DeliveryState.Error(e.message ?: "Unknown error")
+                stateLiveData.value = DeliveryState.Error(e.message ?: "Unknown error")
             }
         }
     }

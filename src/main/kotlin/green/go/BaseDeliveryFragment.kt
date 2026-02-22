@@ -1,14 +1,13 @@
 package green.go
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.LiveData
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.snackbar.Snackbar
 import green.go.databinding.FragmentDeliveryListBinding
@@ -20,27 +19,19 @@ import green.go.utils.SessionManager
 import green.go.viewmodel.DeliveryViewModel
 import green.go.viewmodel.DeliveryViewModelFactory
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 abstract class BaseDeliveryFragment : Fragment() {
 
-    protected var _binding: FragmentDeliveryListBinding? = null
+    private var _binding: FragmentDeliveryListBinding? = null
     protected val binding get() = _binding!!
 
     protected lateinit var adapter: DeliveryAdapter
 
-    protected val viewModel: DeliveryViewModel by viewModels {
+    protected val viewModel: DeliveryViewModel by activityViewModels {
         DeliveryViewModelFactory(DeliveryRepository(RetrofitClient.instance))
-    }
-
-    private val handler = Handler(Looper.getMainLooper())
-    private val refreshRunnable = object : Runnable {
-        override fun run() {
-            if (isAutoRefreshEnabled()) {
-                fetchData(isManualRefresh = false)
-                handler.postDelayed(this, 10000)
-            }
-        }
     }
 
     abstract fun getTitle(): String
@@ -50,13 +41,17 @@ abstract class BaseDeliveryFragment : Fragment() {
     abstract fun getAdapterMode(): Int
     abstract fun fetchData(isManualRefresh: Boolean)
     abstract fun onDeliveryClick(delivery: Delivery)
+    
+    // NOU: Fiecare fragment trebuie sa specifice ce LiveData de stare foloseste
+    abstract fun getStateLiveData(): LiveData<DeliveryState>
+    
     open fun isAutoRefreshEnabled(): Boolean = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        (activity as AppCompatActivity).supportActionBar?.title = getTitle()
+        (activity as? AppCompatActivity)?.supportActionBar?.title = getTitle()
         _binding = FragmentDeliveryListBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -73,16 +68,6 @@ abstract class BaseDeliveryFragment : Fragment() {
         observeViewModel()
 
         fetchData(isManualRefresh = false)
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (isAutoRefreshEnabled()) handler.post(refreshRunnable)
-    }
-
-    override fun onPause() {
-        super.onPause()
-        handler.removeCallbacks(refreshRunnable)
     }
 
     override fun onDestroyView() {
@@ -106,7 +91,8 @@ abstract class BaseDeliveryFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        viewModel.deliveryState.observe(viewLifecycleOwner) { state ->
+        // Acum ascultam de LiveData-ul specific fragmentului
+        getStateLiveData().observe(viewLifecycleOwner) { state ->
             binding.swipeRefreshLayout.isRefreshing = false
             when (state) {
                 is DeliveryState.Loading -> {
@@ -168,7 +154,8 @@ abstract class BaseDeliveryFragment : Fragment() {
     }
 
     protected fun getCourierId(): Long {
-        val prefs = requireContext().getSharedPreferences(SessionManager.PREF_NAME, android.content.Context.MODE_PRIVATE)
+        val context = context ?: return -1L
+        val prefs = context.getSharedPreferences(SessionManager.PREF_NAME, android.content.Context.MODE_PRIVATE)
         return prefs.getLong(SessionManager.KEY_ID, -1L)
     }
 
