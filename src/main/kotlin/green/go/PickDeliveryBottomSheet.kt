@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import green.go.model.Delivery
 
@@ -65,10 +66,14 @@ class PickDeliveryBottomSheet(
         }
 
         btnCall.setOnClickListener {
-            val phoneNumber = "0722000000" // Aici poți pune numărul real dacă există în model
-            val intent = Intent(Intent.ACTION_DIAL)
-            intent.data = Uri.parse("tel:$phoneNumber")
-            startActivity(intent)
+            val phoneNumber = delivery.phoneNumber
+            if (!phoneNumber.isNullOrBlank()) {
+                val intent = Intent(Intent.ACTION_DIAL)
+                intent.data = Uri.parse("tel:$phoneNumber")
+                startActivity(intent)
+            } else {
+                Toast.makeText(requireContext(), "Phone number not available for this order.", Toast.LENGTH_SHORT).show()
+            }
         }
 
         btnAccept.setOnClickListener {

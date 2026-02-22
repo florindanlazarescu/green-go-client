@@ -10,7 +10,8 @@ data class Delivery(
     val cost: Double,
     val status: String,
     val pickUpTime: String,
-    val deliveredTime: String? = null
+    val deliveredTime: String? = null,
+    val phoneNumber: String? = null
 )
 
 data class DeliveryResponse(
